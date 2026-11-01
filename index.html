@@ -228,8 +228,26 @@ let SUNUCU = (location.protocol==='http:' && location.port==='8080') ? location.
 let secili = oku('secili', null);
 let cihazlar = [], ayarlar = {}, kopruVar = null, adbVar = true;
 
-function post(yol,veri){return fetch(SUNUCU+yol,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(veri)}).then(r=>r.json()).catch(()=>({ok:false,ag:true}))}
-function getj(yol){return fetch(SUNUCU+yol,{cache:'no-store'}).then(r=>r.json())}
+// GitHub Pages gibi internetten açılan sayfalar, telefondaki köprüye (127.0.0.1) yalnızca
+// Chrome'un "yerel ağ erişimi" izniyle bağlanabilir. targetAddressSpace, Chrome'a isteğin yerel
+// olduğunu bildirir; desteklemeyen tarayıcılar bu alanı yok sayar.
+const INTERNETTEN = location.protocol==='https:';
+function adresAlani(u){ try{ const h=new URL(u).hostname;
+  if(h==='localhost'||/^127\./.test(h)||h==='[::1]') return 'loopback';
+  if(/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h)||h.endsWith('.local')) return 'local';
+  }catch(e){} return undefined; }
+function secenek(o){ if(INTERNETTEN){ const a=adresAlani(SUNUCU); if(a) o.targetAddressSpace=a; } return o; }
+function post(yol,veri){return fetch(SUNUCU+yol,secenek({method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(veri)})).then(r=>r.json()).catch(()=>({ok:false,ag:true}))}
+function getj(yol){return fetch(SUNUCU+yol,secenek({cache:'no-store'})).then(r=>r.json())}
+let izin = null;   // 'granted' | 'prompt' | 'denied' | null (bilinmiyor)
+async function izinOku(){
+  if(!INTERNETTEN || !navigator.permissions) return null;
+  const adlar = adresAlani(SUNUCU)==='loopback' ? ['loopback-network','local-network-access','local-network'] : ['local-network','local-network-access'];
+  for(const ad of adlar){ try{ const d=await navigator.permissions.query({name:ad});
+    if(!izinOku.dinliyor){ izinOku.dinliyor=true; d.onchange=()=>{ izin=d.state; durum(); }; }
+    return d.state; }catch(e){} }
+  return null;
+}
 function titre(){try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}}
 function bildir(t){const b=$('#bildirim');b.textContent=t;b.classList.add('var');clearTimeout(bildir.z);bildir.z=setTimeout(()=>b.classList.remove('var'),2600)}
 function aktif(){return cihazlar.find(c=>c.id===secili)}
@@ -316,8 +334,21 @@ function arayuz(){
   cihazlariCiz();
   const d=$('#durum'), u=$('#uyari');
   d.classList.remove('ok','bekle'); u.className='uyari gizli';
-  if(kopruVar===false){ $('#durumYazi').textContent='Köprü kapalı';
-    u.className='uyari kirmizi'; u.innerHTML='Köprüye ulaşılamıyor. Termux\'ta <code>python kumanda.py</code> çalışıyor olmalı.'; return; }
+  if(kopruVar===false){
+    const yerel='<a class="b ana" style="text-decoration:none;min-height:42px;margin-top:10px" href="'+SUNUCU+'/">Yerel kumandayı aç</a>';
+    if(INTERNETTEN && izin==='denied'){
+      $('#durumYazi').textContent='İzin gerekli';
+      u.className='uyari sari';
+      u.innerHTML='<b>Chrome bu sayfanın köprüye bağlanmasını engelledi.</b><br>Adres çubuğunun solundaki simgeye dokun → <b>İzinler</b> (ya da Site ayarları) → <b>Yerel ağ</b> / <b>Bu cihazdaki uygulamalar</b> iznini <b>İzin ver</b> yap, sonra sayfayı yenile.'+yerel;
+    } else if(INTERNETTEN){
+      $('#durumYazi').textContent='Köprü yok';
+      u.className='uyari kirmizi';
+      u.innerHTML='Köprüye ulaşılamıyor.<br>1) Termux\'ta <code>python kumanda.py</code> açık olmalı.<br>2) Chrome <b>yerel ağ / cihazdaki uygulamalara erişim</b> izni sorarsa <b>İzin ver</b>.<br>3) Daha önce engellediysen: adres çubuğunun solundaki simge → <b>İzinler</b> → <b>Yerel ağ</b> → <b>İzin ver</b>, sonra sayfayı yenile.'+yerel;
+    } else {
+      $('#durumYazi').textContent='Köprü kapalı';
+      u.className='uyari kirmizi'; u.innerHTML='Köprüye ulaşılamıyor. Termux\'ta <code>python kumanda.py</code> çalışıyor olmalı.';
+    }
+    return; }
   if(kopruVar==='eski'){ $('#durumYazi').textContent='Köprü eski';
     u.className='uyari sari'; u.innerHTML='Termux\'taki köprü eski sürüm. Köprüyü Ctrl+C ile durdurup şunu çalıştır:<br><code>curl -LO https://raw.githubusercontent.com/azataslan065-png/kumanda/main/kumanda.py && curl -LO https://raw.githubusercontent.com/azataslan065-png/kumanda/main/index.html && python kumanda.py</code>'; return; }
   if(!c){ $('#durumYazi').textContent='Cihaz yok'; return; }
@@ -332,6 +363,7 @@ async function durum(){
     if(r.surum===undefined){ kopruVar='eski'; cihazlar=[]; }
     else { kopruVar=true; adbVar=r.adb!==false; cihazlar=r.cihazlar||[]; ayarlar=r.ayar||{}; }
   }catch(e){ kopruVar=false; cihazlar=[]; }
+  izin = await izinOku();
   arayuz();
 }
 $('#durum').onclick=async()=>{ if(!secili){ayarAc();return} $('#durumYazi').textContent='Bağlanıyor…'; await post('/baglan',{c:secili}); setTimeout(durum,600) };
@@ -368,5 +400,8 @@ $('#kaydetBtn').onclick=async()=>{
   $('#ayar').classList.add('gizli'); bildir('Kaydedildi, bağlanılıyor…'); setTimeout(durum,500);
 };
 
-durum(); setInterval(durum,3000);
+// Köprüye ulaşılamıyorken internetten açılan sayfada sık deneme Chrome'un izin penceresini
+// tekrar tekrar açabileceği için aralık uzatılır.
+(function dongu(){ durum().finally(()=>setTimeout(dongu, (INTERNETTEN && kopruVar===false) ? 12000 : 3000)); })();
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) durum(); });
 </script></body></html>
