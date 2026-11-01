@@ -766,6 +766,20 @@ def cihaz_ayarla(proj_adres, tv_adres, tv_mac):
 # bu sunucunun kendi sayfası ve GitHub Pages. Diğer siteler reddedilir.
 IZINLI = {'null', 'http://127.0.0.1:%d' % PORT, 'http://localhost:%d' % PORT,
           'https://azataslan065-png.github.io'}
+GITHUB_SAYFA = 'https://azataslan065-png.github.io/kumanda/'
+
+# Köprü ev ağından da erişilebilir (GitHub sayfası telefondaki 127.0.0.1'e erişemediği için).
+# Ağdan gelen her istek bu gizli anahtarı taşımak zorunda; telefonun kendisinden gelenler muaf.
+def erisim_anahtari():
+    a = AYAR.get('erisim_anahtari')
+    if not a:
+        import secrets
+        a = AYAR['erisim_anahtari'] = secrets.token_urlsafe(18)
+        try:
+            ayar_yaz(AYAR)
+        except Exception:
+            pass
+    return a
 
 def sayi(v, k, vars=0.0, alt=None, ust=None):
     try:
@@ -787,9 +801,22 @@ class H(BaseHTTPRequestHandler):
     def kaynak(self):
         return self.headers.get('Origin')
 
-    def izinli(self):
+    def telefondan(self):
+        return self.client_address[0].startswith('127.') or self.client_address[0] == '::1'
+
+    def izinli(self, v=None):
         o = self.kaynak()
-        return o is None or o in IZINLI
+        if not (o is None or o in IZINLI):
+            return False
+        if self.telefondan():
+            return True
+        import hmac
+        return hmac.compare_digest(str((v or {}).get('k', '')), erisim_anahtari())
+
+    def yerel_sayfadan(self):
+        """Yalnızca telefonda çalışan kendi sayfamız (GitHub değil) bağlantı bilgisini görebilir."""
+        return self.telefondan() and self.kaynak() in (None, 'null', 'http://127.0.0.1:%d' % PORT,
+                                                        'http://localhost:%d' % PORT)
 
     def cors(self):
         o = self.kaynak()
@@ -801,7 +828,8 @@ class H(BaseHTTPRequestHandler):
             self.send_header('Vary', 'Origin')
 
     def do_OPTIONS(self):
-        self.send_response(204 if self.izinli() else 403)
+        o = self.kaynak()
+        self.send_response(204 if (o is None or o in IZINLI) else 403)
         self.cors()
         self.send_header('Content-Length', '0')
         self.end_headers()
@@ -831,14 +859,20 @@ class H(BaseHTTPRequestHandler):
                                 'azataslan065-png/kumanda/main/index.html</code><br>ya da '
                                 '<a href="https://azataslan065-png.github.io/kumanda/">kumandayı buradan aç</a>.</p>',
                            'text/html')
-        elif not self.izinli():
-            self.yanit(403, {'ok': False})
+        elif not self.izinli(q):
+            self.yanit(403, {'ok': False, 'hata': 'anahtar'})
         elif yol.path == '/durum':
-            self.yanit(200, {'surum': 2, 'adb': ADB_VAR,
-                             'cihazlar': [c.ozet() for c in list(CIHAZLAR.values())],
-                             'ayar': {'projeksiyon': (AYAR.get('projeksiyon') or {}).get('adres', ''),
-                                      'tv': (AYAR.get('tv') or {}).get('adres', ''),
-                                      'mac': (AYAR.get('tv') or {}).get('mac') or ''}})
+            d = {'surum': 3, 'adb': ADB_VAR,
+                 'cihazlar': [c.ozet() for c in list(CIHAZLAR.values())],
+                 'ayar': {'projeksiyon': (AYAR.get('projeksiyon') or {}).get('adres', ''),
+                          'tv': (AYAR.get('tv') or {}).get('adres', ''),
+                          'mac': (AYAR.get('tv') or {}).get('mac') or ''}}
+            if self.yerel_sayfadan():
+                ip = yerel_ip()
+                if ip and ev_agi_mi(ip):
+                    d['github'] = {'sunucu': 'http://%s:%d' % (ip, PORT), 'k': erisim_anahtari(),
+                                   'sayfa': GITHUB_SAYFA}
+            self.yanit(200, d)
         elif yol.path == '/tara':
             self.yanit(200, ag_tara())
         elif yol.path == '/girisler':
@@ -854,11 +888,11 @@ class H(BaseHTTPRequestHandler):
         except ValueError:
             n = 0
         govde = self.rfile.read(n).decode('utf-8', 'replace')
-        if not self.izinli():
-            self.close_connection = True
-            self.yanit(403, {'ok': False})
-            return
         v = {k: x[0] for k, x in parse_qs(govde).items()}
+        if not self.izinli(v):
+            self.close_connection = True
+            self.yanit(403, {'ok': False, 'hata': 'anahtar'})
+            return
         if self.path == '/ayarla':
             hata = cihaz_ayarla(v.get('projeksiyon'), v.get('tv'), v.get('mac'))
             self.yanit(200, {'ok': hata is None, 'hata': hata})
@@ -943,10 +977,14 @@ def main():
     for c in CIHAZLAR.values():
         print('•', c.ad, '→', c.adres)
         c.baglan_arkada()
+    erisim_anahtari()
     print('\nKumanda hazır → tarayıcıda aç: http://127.0.0.1:%d' % PORT)
+    ip = yerel_ip()
+    if ip and ev_agi_mi(ip):
+        print('GitHub sayfası için: kumandada ⚙ → "GitHub sayfasını bağla"  (ağ adresi %s)' % ip)
     print('(Kapatmak için Ctrl+C)')
     try:
-        ThreadingHTTPServer(('127.0.0.1', PORT), H).serve_forever()
+        ThreadingHTTPServer(('0.0.0.0', PORT), H).serve_forever()
     except KeyboardInterrupt:
         print('\nKöprü kapatıldı.')
     except OSError as e:
