@@ -582,7 +582,12 @@ class LGTV:
                 # TV'nin kendi logosu yalnızca https ise kullanılabilir (sayfa https'ten açılıyor)
                 'logo': logo if str(logo).startswith('https://') else '',
             })
-        return {'kanallar': liste, 'simdiki': self.simdiki_kanal()}
+        akis_hazirla()
+        for k in liste:
+            k['akis'] = kanal_akisi(k['ad'])
+        return {'kanallar': liste, 'simdiki': self.simdiki_kanal(),
+                'akis': {'hazir': bool(AKIS['veri']), 'yukleniyor': AKIS['yukleniyor'],
+                         'zaman': int(AKIS['zaman']), 'hata': AKIS['hata']}}
 
     def simdiki_kanal(self):
         p = (self.istek('ssap://tv/getCurrentChannel') or {}).get('payload') or {}
@@ -614,6 +619,151 @@ class LGTV:
                         return
         except Exception:
             pass
+
+# ───────────────────────── yayın akışı (EPG) ─────────────────────────
+# İki açık kaynak birleştirilir; biri bozulursa diğeri kullanılır.
+#  • Digiturk akışı: 7 günlük, günde birkaç kez güncellenir (github.com/esinik/tv-epg)
+#  • Türksat akışı: yalnız o gün, her gece güncellenir (github.com/necmikarasucum-eng/iptv-epg-turkey)
+AKIS_KAYNAKLARI = [
+    ('json', 'https://raw.githubusercontent.com/esinik/tv-epg/main/data/digiturk.json'),
+    ('xmlgz', 'https://raw.githubusercontent.com/necmikarasucum-eng/iptv-epg-turkey/main/epg/turksat_epg.xml.gz'),
+]
+AKIS_DOSYASI = os.path.expanduser('~/.kumanda_akis.json')
+AKIS_YENILEME = 4 * 3600
+AKIS = {'veri': {}, 'zaman': 0, 'yukleniyor': False, 'hata': ''}
+akis_kilit = threading.Lock()
+
+_TR_AKIS = str.maketrans('çğıöşüâîûÇĞİÖŞÜÂÎÛ', 'cgiosuaiuCGIOSUAIU')
+
+def kanal_anahtari(ad):
+    """Kumanda sayfasındaki logoAnahtar() ile aynı sadeleştirme."""
+    import unicodedata
+    s = str(ad or '').translate(_TR_AKIS).lower()
+    s = ''.join(c for c in unicodedata.normalize('NFKD', s) if not unicodedata.combining(c))
+    s = re.sub(r'[^a-z0-9]', '', s)
+    while True:
+        y = re.sub(r'(fhd|uhd|hd|sd)$', '', s)
+        if y == s or not y:
+            break
+        s = y
+    return s
+
+# Kaynaklarla TV'nin kanal adları farklı yazıldığında
+AKIS_TAKMA = {'nationalgeo': 'nationalgeographic', 'natgeowild': 'nationalgeographicwild',
+              'number1': 'nr1', 'number1tv': 'nr1', 'trt3trtspor': 'trtspor', 'trt3spor': 'trtspor',
+              'benguturktv': 'benguturk', 'nickelodeonsd': 'nickelodeon',
+              'haberturktv': 'haberturk', 'szc': 'sozcutv', 'sozcu': 'sozcutv'}
+
+def _akis_anahtarlari(ad):
+    k = kanal_anahtari(ad)
+    k = AKIS_TAKMA.get(k, k)
+    out = [k]
+    if k.endswith('tv') and len(k) > 3:
+        out.append(k[:-2])
+    else:
+        out.append(k + 'tv')
+    return out
+
+def _indir(url, sure=40):
+    import urllib.request, gzip
+    istek = urllib.request.Request(url, headers={'User-Agent': 'kumanda/1.0'})
+    with urllib.request.urlopen(istek, timeout=sure) as y:
+        veri = y.read(60 * 1024 * 1024)
+    if url.endswith('.gz') or veri[:2] == b'\x1f\x8b':
+        veri = gzip.decompress(veri)
+    return veri
+
+def _akis_json(veri):
+    from datetime import datetime
+    d = json.loads(veri)
+    adlar = {c.get('id'): c.get('name') for c in d.get('channels') or []}
+    sonuc = {}
+    for p in d.get('programmes') or []:
+        ad = adlar.get(p.get('channel'))
+        try:
+            b = datetime.fromisoformat(str(p['start']).replace('Z', '+00:00')).timestamp()
+            e = datetime.fromisoformat(str(p['stop']).replace('Z', '+00:00')).timestamp()
+        except Exception:
+            continue
+        if ad and p.get('title') and e > b:
+            sonuc.setdefault(ad, []).append((int(b), int(e), str(p['title']).strip()))
+    return sonuc
+
+def _akis_xml(veri):
+    import xml.etree.ElementTree as ET
+    from datetime import datetime
+    kok = ET.fromstring(veri)
+    adlar = {c.get('id'): (c.findtext('display-name') or '').strip() for c in kok.iter('channel')}
+    sonuc = {}
+    for p in kok.iter('programme'):
+        ad = adlar.get(p.get('channel'))
+        baslik = (p.findtext('title') or '').strip()
+        try:
+            b = datetime.strptime(p.get('start', ''), '%Y%m%d%H%M%S %z').timestamp()
+            e = datetime.strptime(p.get('stop', ''), '%Y%m%d%H%M%S %z').timestamp()
+        except Exception:
+            continue
+        if ad and baslik and baslik != '-' and e > b:
+            sonuc.setdefault(ad, []).append((int(b), int(e), baslik))
+    return sonuc
+
+def akis_guncelle():
+    with akis_kilit:
+        if AKIS['yukleniyor']:
+            return
+        AKIS['yukleniyor'] = True
+    try:
+        birlesik, hatalar = {}, []
+        for tur, url in AKIS_KAYNAKLARI:
+            try:
+                veri = _indir(url)
+                parca = _akis_json(veri) if tur == 'json' else _akis_xml(veri)
+            except Exception as e:
+                hatalar.append('%s: %s' % (url.rsplit('/', 1)[-1], e))
+                continue
+            for ad, liste in parca.items():
+                anahtar = _akis_anahtarlari(ad)[0]
+                mevcut = birlesik.setdefault(anahtar, [])
+                # Önceki (öncelikli) kaynakta o saat dilimi zaten varsa ekleme
+                for p in liste:
+                    if not any(m[0] < p[1] and p[0] < m[1] for m in mevcut):
+                        mevcut.append(p)
+        if not birlesik:
+            AKIS['hata'] = 'Yayın akışı indirilemedi (%s)' % '; '.join(hatalar)
+            return
+        for liste in birlesik.values():
+            liste.sort()
+        AKIS.update(veri=birlesik, zaman=time.time(), hata='; '.join(hatalar))
+        try:
+            with open(AKIS_DOSYASI + '.tmp', 'w', encoding='utf-8') as f:
+                json.dump({'zaman': AKIS['zaman'], 'veri': birlesik}, f, ensure_ascii=False, separators=(',', ':'))
+            os.replace(AKIS_DOSYASI + '.tmp', AKIS_DOSYASI)
+        except Exception:
+            pass
+    finally:
+        AKIS['yukleniyor'] = False
+
+def akis_hazirla():
+    """Kayıtlı akışı yükler; eskiyse arkada yeniler."""
+    if not AKIS['veri']:
+        try:
+            with open(AKIS_DOSYASI, encoding='utf-8') as f:
+                k = json.load(f)
+            AKIS['veri'] = {a: [tuple(p) for p in l] for a, l in k.get('veri', {}).items()}
+            AKIS['zaman'] = k.get('zaman', 0)
+        except Exception:
+            pass
+    if time.time() - AKIS['zaman'] > AKIS_YENILEME and not AKIS['yukleniyor']:
+        threading.Thread(target=akis_guncelle, daemon=True).start()
+
+def kanal_akisi(ad, simdi=None, ileri=24 * 3600):
+    """Kanalın şu an ve önümüzdeki 24 saatteki programları: [[başlangıç, bitiş, başlık], ...]"""
+    simdi = simdi or time.time()
+    for k in _akis_anahtarlari(ad):
+        liste = AKIS['veri'].get(k)
+        if liste:
+            return [list(p) for p in liste if p[1] > simdi and p[0] < simdi + ileri][:80]
+    return []
 
 # ───────────────────────── ADB (Android projeksiyon / TV) ─────────────────────────
 ADB_TUS = {
@@ -899,7 +1049,7 @@ class H(BaseHTTPRequestHandler):
         elif not self.izinli(q):
             self.yanit(403, {'ok': False, 'hata': 'anahtar'})
         elif yol.path == '/durum':
-            d = {'surum': 4, 'adb': ADB_VAR,
+            d = {'surum': 5, 'adb': ADB_VAR,
                  'cihazlar': [c.ozet() for c in list(CIHAZLAR.values())],
                  'ayar': {'projeksiyon': (AYAR.get('projeksiyon') or {}).get('adres', ''),
                           'tv': (AYAR.get('tv') or {}).get('adres', ''),
@@ -1023,6 +1173,8 @@ def main():
         print('•', c.ad, '→', c.adres)
         c.baglan_arkada()
     erisim_anahtari()
+    if 'tv' in CIHAZLAR:
+        akis_hazirla()   # yayın akışını arkada indir
     print('\nKumanda hazır → tarayıcıda aç: http://127.0.0.1:%d' % PORT)
     ip = yerel_ip()
     if ip and ev_agi_mi(ip):
