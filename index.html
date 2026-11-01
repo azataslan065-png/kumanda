@@ -85,6 +85,35 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 .panel .satir .b{flex:1;min-height:46px}
 .panel .ana{background:var(--vurgu)}
 .ayrac{height:1px;background:var(--tus2);margin:16px 0}
+/* kanal listesi */
+.kanalBtn{width:100%;margin-bottom:16px;min-height:56px;font-size:16px;background:linear-gradient(90deg,#1c2a4a,var(--tus))}
+.kanalPanel{position:fixed;inset:0;background:var(--bg);z-index:25;display:flex;flex-direction:column}
+.kp-ust{padding:calc(12px + env(safe-area-inset-top)) 16px 10px;background:var(--bg);border-bottom:1px solid var(--tus2)}
+.kp-bas{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.kp-bas h2{margin:0;font-size:18px;flex:1}
+.kp-bas small{color:var(--soluk);font-weight:500;font-size:13px;margin-left:6px}
+.kp-ikon{background:var(--kart);border:0;border-radius:12px;width:42px;height:40px;font-size:18px}
+.kp-ara{position:relative}
+.kp-ara input{width:100%;background:var(--kart);border:1px solid var(--tus2);color:var(--yazi);border-radius:12px;padding:12px 40px 12px 40px;font-size:16px;user-select:text;-webkit-user-select:text}
+.kp-ara input:focus{outline:none;border-color:var(--vurgu)}
+.kp-ara .buyutec{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;fill:none;stroke:var(--soluk);stroke-width:2.2;stroke-linecap:round;pointer-events:none}
+.kp-ara .temizle{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--soluk);font-size:18px;width:32px;height:32px}
+.kp-filtre{display:flex;gap:8px;margin-top:10px}
+.kp-filtre button{background:var(--kart);border:0;border-radius:16px;padding:6px 13px;font-size:13px;font-weight:600;color:var(--soluk)}
+.kp-filtre button.aktif{background:var(--vurgu);color:#fff}
+.kp-liste{flex:1;overflow-y:auto;padding:6px 10px calc(20px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
+.kanal{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;border-radius:14px;padding:8px 8px;text-align:left}
+.kanal:active{background:var(--kart)}
+.kanal.simdi{background:#16213a}
+.kanal .no{width:34px;flex:none;text-align:right;color:var(--soluk);font-size:14px;font-variant-numeric:tabular-nums;font-weight:600}
+.kanal .logo{width:60px;height:40px;flex:none;border-radius:9px;background:#353b4b;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.kanal .logo img{max-width:52px;max-height:32px;object-fit:contain}
+.kanal .logo.harf{color:#fff;font-weight:800;font-size:14px;letter-spacing:-.3px}
+.kanal .ad{flex:1;min-width:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kanal .ad small{display:block;color:var(--soluk);font-size:12px;font-weight:500;margin-top:1px}
+.kanal .rozet{flex:none;font-size:11px;font-weight:700;color:#fff;background:var(--kirmizi);border-radius:8px;padding:3px 7px}
+.kp-bos{color:var(--soluk);text-align:center;padding:40px 20px;line-height:1.6;font-size:14px}
+.kp-bos b{color:var(--yazi)}
 .bildirim{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#262c3c;padding:10px 16px;border-radius:12px;font-size:14px;z-index:30;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
 .bildirim.var{opacity:1}
 </style></head><body><div class="kap">
@@ -157,6 +186,8 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
   <button class="b" data-t="MAVI" style="background:#2f62c6" aria-label="Mavi"></button>
 </div>
 
+<button class="b kanalBtn" id="kanallarBtn" data-yalniz="lg"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M9 2l3 3 3-3"/></svg>Kanal listesi</button>
+
 <div class="baslik">Uygulamalar</div>
 <div class="uyg" id="uyg">
   <button class="b" data-ac="canli"><i>📡</i>Canlı TV</button>
@@ -223,6 +254,24 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
     <div class="satir"><button class="b" id="kapatBtn">Kapat</button></div>
   </div>
 </div>
+<div class="kanalPanel gizli" id="kanalPanel">
+  <div class="kp-ust">
+    <div class="kp-bas">
+      <h2>Kanallar<small id="kpSayi"></small></h2>
+      <button class="kp-ikon" id="kpYenile" aria-label="Yenile">↻</button>
+      <button class="kp-ikon" id="kpKapat" aria-label="Kapat">✕</button>
+    </div>
+    <div class="kp-ara">
+      <svg class="buyutec" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="kpAra" type="search" placeholder="Kanal adı ya da numara ara…" autocomplete="off" enterkeyhint="search">
+      <button class="temizle gizli" id="kpTemizle" aria-label="Aramayı temizle">✕</button>
+    </div>
+    <div class="kp-filtre gizli" id="kpFiltre">
+      <button class="aktif" data-f="hepsi">Tümü</button><button data-f="tv">TV</button><button data-f="radyo">Radyo</button>
+    </div>
+  </div>
+  <div class="kp-liste" id="kpListe"></div>
+</div>
 <div class="bildirim" id="bildirim"></div>
 
 <script>
@@ -240,7 +289,7 @@ const YEREL_SAYFA = location.protocol==='http:' && location.port==='8080';
 let SUNUCU = YEREL_SAYFA ? location.origin
   : (oku('sunucu',null) || (()=>{try{return localStorage.getItem('hy350_sunucu')}catch(e){return null}})() || 'http://127.0.0.1:8080');
 const ANAHTAR = YEREL_SAYFA ? '' : oku('anahtar','');
-let githubBilgi = null, anahtarHatali = false;
+let githubBilgi = null, anahtarHatali = false, kopruSurum = 0;
 let secili = oku('secili', null);
 let cihazlar = [], ayarlar = {}, kopruVar = null, adbVar = true;
 
@@ -385,7 +434,7 @@ async function durum(){
   try{ const r=await getj('/durum');
     if(r.hata==='anahtar'){ kopruVar=false; anahtarHatali=true; cihazlar=[]; }
     else if(r.surum===undefined){ kopruVar='eski'; cihazlar=[]; }
-    else { kopruVar=true; adbVar=r.adb!==false; cihazlar=r.cihazlar||[]; ayarlar=r.ayar||{}; githubBilgi=r.github||null;
+    else { kopruVar=true; kopruSurum=r.surum||0; adbVar=r.adb!==false; cihazlar=r.cihazlar||[]; ayarlar=r.ayar||{}; githubBilgi=r.github||null;
       if(oku('yeni_baglandi','')){ yaz('yeni_baglandi',''); bildir('GitHub sayfası köprüye bağlandı ✓'); } }
   }catch(e){ kopruVar=false; cihazlar=[]; }
   izin = await izinOku();
@@ -430,6 +479,90 @@ $('#kaydetBtn').onclick=async()=>{
   if($('#tvAdres').value.trim()){ secili='tv'; yaz('secili','tv'); } else if($('#projAdres').value.trim()){ secili='projeksiyon'; yaz('secili','projeksiyon'); }
   $('#ayar').classList.add('gizli'); bildir('Kaydedildi, bağlanılıyor…'); setTimeout(durum,500);
 };
+
+// ── kanal listesi ──
+// Logolar: tv-logo/tv-logos arşivi (CC BY-SA). Kanal adı sadeleştirilip tabloda aranır.
+const LOGO_TABAN='https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/turkey/';
+const LOGOLAR={"24":"24","24tv":"24","360":"360","360tv":"360","4eylul":"4-eylul","4eylultv":"4-eylul","a2":"a2","a2tv":"a2","ada":"ada-tv","adatv":"ada-tv","agro":"agro-tv","agrotv":"agro-tv","ahaber":"a-haber","ahabertv":"a-haber","akit":"akit-tv","akittv":"akit-tv","aksu":"aksu-tv","aksutv":"aksu-tv","altas":"altas-tv","altastv":"altas-tv","anadoludernek":"anadolu-dernek","anadoludernektv":"anadolu-dernek","anews":"a-news","anewstv":"a-news","apara":"a-para","aparatv":"a-para","aspor":"a-spor","asportv":"a-spor","atv":"atv","atvavrupa":"atv-avrupa","atvavrupatv":"atv-avrupa","baharturk":"bahar-turk","baharturktv":"bahar-turk","bbnturk":"bbn-turk","bbnturktv":"bbn-turk","bein":"bein-hd","beinboxoffice1":"bein-box-office-1","beinboxoffice1tv":"bein-box-office-1","beinboxoffice2":"bein-box-office-2","beinboxoffice2tv":"bein-box-office-2","beinboxoffice3":"bein-box-office-3","beinboxoffice3tv":"bein-box-office-3","beingurme":"bein-gurme-hd","beingurmetv":"bein-gurme-hd","beinhande":"bein-h-and-e-hd","beinhandetv":"bein-h-and-e-hd","beiniz":"bein-iz-hd","beiniztv":"bein-iz-hd","beinmoviesaction":"bein-movies-action-hd","beinmoviesaction2":"bein-movies-action-2-hd","beinmoviesaction2tv":"bein-movies-action-2-hd","beinmoviesactiontv":"bein-movies-action-hd","beinmoviesfamily":"bein-movies-family-hd","beinmoviesfamilytv":"bein-movies-family-hd","beinmoviespremiere":"bein-movies-premiere-hd","beinmoviespremiere2":"bein-movies-premiere-2-hd","beinmoviespremiere2tv":"bein-movies-premiere-2-hd","beinmoviespremieretv":"bein-movies-premiere-hd","beinmoviesstars":"bein-movies-stars-hd","beinmoviesstarstv":"bein-movies-stars-hd","beinmoviesturk":"bein-movies-turk-hd","beinmoviesturktv":"bein-movies-turk-hd","beinseriescomedy":"bein-series-comedy-hd","beinseriescomedytv":"bein-series-comedy-hd","beinseriesdrama":"bein-series-drama-hd","beinseriesdramatv":"bein-series-drama-hd","beinseriesscifi":"bein-series-sci-fi-hd","beinseriesscifitv":"bein-series-sci-fi-hd","beinseriesvice":"bein-series-vice-hd","beinseriesvicetv":"bein-series-vice-hd","beinsportshaber":"bein-sports-haber","beinsportshabertv":"bein-sports-haber","beintv":"bein-hd","benguturk":"bengu-turk","benguturktv":"bengu-turk","berat":"berat-tv","berattv":"berat-tv","beyaz":"beyaz-tv","beyaztv":"beyaz-tv","beykent":"beykent-tv","beykenttv":"beykent-tv","bizimev":"bizimev-tv","bizimevtv":"bizimev-tv","bloomberght":"bloomberg-ht","bloomberghttv":"bloomberg-ht","br":"brtv","brt1":"brt-1","brt1tv":"brt-1","brt2":"brt-2","brt2tv":"brt-2","brt3":"brt-3","brt3tv":"brt-3","brtv":"brtv","bursaspor":"bursaspor-tv","bursasportv":"bursaspor-tv","cay":"cay-tv","caytv":"cay-tv","cem":"cem-tv","cemtv":"cem-tv","ciftci":"ciftci-tv","ciftcitv":"ciftci-tv","cnbce":"cnbc-e","cnbcetv":"cnbc-e","cnnturk":"cnn-turk","cnnturktv":"cnn-turk","cocuksmart":"cocuk-smart","cocuksmarttv":"cocuk-smart","disneychannel":"disney-channel","disneychanneltv":"disney-channel","diyanet":"diyanet-tv","diyanettv":"diyanet-tv","diyar":"diyar-tv","diyartv":"diyar-tv","dizismartmax":"dizi-smart-max","dizismartmaxtv":"dizi-smart-max","dizismartpremium":"dizi-smart-premium","dizismartpremiumtv":"dizi-smart-premium","dost":"dost-tv","dosttv":"dost-tv","dreamturk":"dream-turk","dreamturktv":"dream-turk","drtdenizli":"drt-denizli","drtdenizlitv":"drt-denizli","ebatvilkokul":"eba-tv-ilkokul","ebatvilkokultv":"eba-tv-ilkokul","ebatvlise":"eba-tv-lise","ebatvlisetv":"eba-tv-lise","ebatvortaokul":"eba-tv-ortaokul","ebatvortaokultv":"eba-tv-ortaokul","edessa":"edessa-tv","edessatv":"edessa-tv","ege":"ege-tv","egetv":"ege-tv","ekintvturk":"ekin-tv-turk","ekintvturktv":"ekin-tv-turk","ekoturk":"ekoturk","ekoturktv":"ekoturk","es":"es-tv","estv":"es-tv","eurod":"euro-d","eurodtv":"euro-d","eurostar":"euro-star","eurostartv":"euro-star","fashionone":"fashion-one-tv","fashiononetv":"fashion-one-tv","fenerbahce":"fenerbahce-tv","fenerbahcetv":"fenerbahce-tv","filmbox":"filmbox","filmboxtv":"filmbox","flash":"flash-tv","flashtv":"flash-tv","fm":"fm-tv","fmtv":"fm-tv","fox":"fox","foxcrime":"fox-crime","foxcrimetv":"fox-crime","foxtv":"fox","fx":"fx","fxtv":"fx","galatasaray":"galatasaray-tv","galatasaraytv":"galatasaray-tv","gaziantepolay":"gaziantep-olay-tv","gaziantepolaytv":"gaziantep-olay-tv","guneydogu":"guneydogu-tv","guneydogutv":"guneydogu-tv","haberglobal":"haber-global","haberglobaltv":"haber-global","haberturk":"haberturk","haberturktv":"haberturk","halk":"halk-tv","halktv":"halk-tv","hrtakdeniz":"hrt-akdeniz","hrtakdeniztv":"hrt-akdeniz","hthayat":"ht-hayat","hthayattv":"ht-hayat","kadirga":"kadirga","kadirgatv":"kadirga","kanal15":"kanal-15","kanal15tv":"kanal-15","kanal16":"kanal-16","kanal16tv":"kanal-16","kanal23":"kanal23","kanal23tv":"kanal23","kanal26":"kanal-26","kanal26tv":"kanal-26","kanal3":"kanal3","kanal33":"kanal-33","kanal33tv":"kanal-33","kanal3tv":"kanal3","kanal42":"kanal-42","kanal42tv":"kanal-42","kanal58":"kanal-58","kanal58tv":"kanal-58","kanal7":"kanal-7","kanal7avrupa":"kanal-7-avrupa","kanal7avrupatv":"kanal-7-avrupa","kanal7tv":"kanal-7","kanalavrupa":"kanal-avrupa","kanalavrupatv":"kanal-avrupa","kanalb":"kanal-b","kanalbtv":"kanal-b","kanald":"kanal-d","kanaldtv":"kanal-d","kanalege":"kanal-ege","kanalegetv":"kanal-ege","kanalfirat":"kanal-firat","kanalfirattv":"kanal-firat","kanalsim":"kanal-sim","kanalsimtv":"kanal-sim","kanalt":"kanal-t","kanalttv":"kanal-t","kanalurfa":"kanal-urfa","kanalurfatv":"kanal-urfa","kanalv":"kanal-v","kanalvtv":"kanal-v","kanalz":"kanal-z","kanalztv":"kanal-z","kardelen":"kardelen-tv","kardelentv":"kardelen-tv","kentturk":"kent-turk","kentturktv":"kent-turk","kocaeli":"kocaeli-tv","kocaelitv":"kocaeli-tv","kon":"kon-tv","kontv":"kon-tv","koy":"koy-tv","koytv":"koy-tv","koza":"koza-tv","kozatv":"koza-tv","kral":"kral-tv","kralpop":"kral-pop","kralpoptv":"kral-pop","kraltv":"kral-tv","krt":"krt","krttv":"krt","lalegul":"lalegul-tv","lalegultv":"lalegul-tv","line":"line-tv","linetv":"line-tv","manisa":"manisa-tv","manisatv":"manisa-tv","mavikaradeniz":"mavi-karadeniz","mavikaradeniztv":"mavi-karadeniz","mercan":"mercan-tv","mercantv":"mercan-tv","milyon":"milyon-tv","milyontv":"milyon-tv","minikacocuk":"minika-cocuk","minikacocuktv":"minika-cocuk","minikago":"minika-go","minikagotv":"minika-go","moviesmartaction":"movie-smart-action","moviesmartactiontv":"movie-smart-action","moviesmartclassic":"movie-smart-classic","moviesmartclassictv":"movie-smart-classic","moviesmartfamily":"movie-smart-family","moviesmartfamilytv":"movie-smart-family","moviesmartfest":"movie-smart-fest","moviesmartfesttv":"movie-smart-fest","moviesmartgold":"movie-smart-gold","moviesmartgoldtv":"movie-smart-gold","moviesmartplatin":"movie-smart-platin","moviesmartplatin2":"movie-smart-platin2","moviesmartplatin2tv":"movie-smart-platin2","moviesmartplatintv":"movie-smart-platin","moviesmartpremium":"movie-smart-premium","moviesmartpremium2":"movie-smart-premium2","moviesmartpremium2tv":"movie-smart-premium2","moviesmartpremiumtv":"movie-smart-premium","moviesmartturk":"movie-smart-turk","moviesmartturktv":"movie-smart-turk","now":"now","nowtv":"now","nr1":"nr1","nr1ask":"nr1-ask","nr1asktv":"nr1-ask","nr1damar":"nr1-damar","nr1damartv":"nr1-damar","nr1dance":"nr1-dance","nr1dancetv":"nr1-dance","nr1turk":"nr1-turk","nr1turktv":"nr1-turk","nr1tv":"nr1","ntv":"ntv","on4":"on4-tv","on4tv":"on4-tv","pamukkale":"pamukkale-tv","pamukkaletv":"pamukkale-tv","planet":"planet-tv","planetcocuk":"planet-cocuk","planetcocuktv":"planet-cocuk","planetpembe":"planet-pembe","planetpembetv":"planet-pembe","planetsinema":"planet-sinema","planetsinematv":"planet-sinema","planetturk":"planet-turk","planetturktv":"planet-turk","planettv":"planet-tv","power":"power-tv","powerturk":"powerturk","powerturktv":"powerturk","powertv":"power-tv","rehber":"rehber-tv","rehbertv":"rehber-tv","rumeli":"rumeli-tv","rumelitv":"rumeli-tv","sat7turk":"sat7-turk","sat7turktv":"sat7-turk","semerkand":"semerkand-tv","semerkandtv":"semerkand-tv","show":"show","showmax":"show-max","showmaxtv":"show-max","showturk":"show-turk","showturktv":"show-turk","showtv":"show","sinema":"sinema-tv","sinema1001":"sinema-1001","sinema1001tv":"sinema-1001","sinema1002":"sinema-1002","sinema1002tv":"sinema-1002","sinemaaile":"sinema-aile","sinemaaile2":"sinema-aile2","sinemaaile2tv":"sinema-aile2","sinemaailetv":"sinema-aile","sinemaaksiyon":"sinema-aksiyon","sinemaaksiyon2":"sinema-aksiyon2","sinemaaksiyon2tv":"sinema-aksiyon2","sinemaaksiyontv":"sinema-aksiyon","sinemakomedi":"sinema-komedi","sinemakomedi2":"sinema-komedi2","sinemakomedi2tv":"sinema-komedi2","sinemakomeditv":"sinema-komedi","sinematv":"sinema-tv","sinematv2":"sinema-tv2","sinematv2tv":"sinema-tv2","sinemayerli":"sinema-yerli","sinemayerli2":"sinema-yerli2","sinemayerli2tv":"sinema-yerli2","sinemayerlitv":"sinema-yerli","sporsmart":"spor-smart-hd","sporsmarttv":"spor-smart-hd","sports":"sports-tv","sportstv":"sports-tv","ssport":"s-sport","ssport2":"s-sport-2","ssport2tv":"s-sport-2","ssportplus":"s-sport-plus","ssportplustv":"s-sport-plus","ssporttv":"s-sport","star":"star-tv","startv":"star-tv","stingrayambiance":"stingray-ambiance","stingrayambiance4k":"stingray-ambiance-4k","stingrayambiance4ktv":"stingray-ambiance-4k","stingrayambiancetv":"stingray-ambiance","tarim":"tarim-tv","tarimturk":"tarim-turk","tarimturktv":"tarim-turk","tarimtv":"tarim-tv","tatlises":"tatlises-tv","tatlisestv":"tatlises-tv","tay":"tay-tv","taytv":"tay-tv","tbmm":"tbmm-tv","tbmmtv":"tbmm-tv","tekrumeli":"tek-rumeli","tekrumelitv":"tek-rumeli","tele1":"tele1","tele1tv":"tele1","tempo":"tempo-tv","tempotv":"tempo-tv","teve2":"teve2","teve2tv":"teve2","tgrtbelgesel":"tgrt-belgesel","tgrtbelgeseltv":"tgrt-belgesel","tgrteu":"tgrt-eu","tgrteutv":"tgrt-eu","tgrthaber":"tgrt-haber","tgrthabertv":"tgrt-haber","tivi6":"tivi6","tivi6tv":"tivi6","tjk":"tjk-tv","tjktv":"tjk-tv","tmb":"tmb","tmbtv":"tmb","toprak":"toprak-tv","topraktv":"toprak-tv","tr35":"tr-35","tr35tv":"tr-35","trt1":"trt-1","trt1tv":"trt-1","trt2":"trt-2","trt2tv":"trt-2","trt3":"trt-3","trt3spor":"trt-3-spor","trt3sportv":"trt-3-spor","trt3tv":"trt-3","trt4k":"trt-4k","trt4ktv":"trt-4k","trtarabi":"trt-arabi","trtarabitv":"trt-arabi","trtavaz":"trt-avaz","trtavaztv":"trt-avaz","trtbelgesel":"trt-belgesel","trtbelgeseltv":"trt-belgesel","trtcocuk":"trt-cocuk","trtcocuktv":"trt-cocuk","trtgenc":"trt-genç","trtgenctv":"trt-genç","trthaber":"trt-haber","trthabertv":"trt-haber","trtkurdi":"trt-kurdi","trtkurditv":"trt-kurdi","trtmuzik":"trt-muzik","trtmuziktv":"trt-muzik","trtspor":"trt-spor","trtspor2":"trt-spor-2","trtspor2tv":"trt-spor-2","trtsportv":"trt-spor","trtsporyildiz":"trt-spor-yildiz","trtsporyildiztv":"trt-spor-yildiz","trtturk":"trt-turk","trtturktv":"trt-turk","trtworld":"trt-world","trtworldtv":"trt-world","turkhaber":"turk-haber","turkhabertv":"turk-haber","tv1":"tv1","tv100":"tv100","tv100tv":"tv100","tv1tv":"tv1","tv2":"tv2","tv264":"tv264","tv264tv":"tv264","tv2tv":"tv2","tv35":"tv-35","tv35tv":"tv-35","tv4":"tv4","tv4tv":"tv4","tv5":"tv5","tv52":"tv52","tv52tv":"tv52","tv5tv":"tv5","tv8":"tv8","tv85":"tv85","tv85tv":"tv85","tv8int":"tv8-int","tv8inttv":"tv8-int","tv8tv":"tv8","tvden":"tv-den","tvdentv":"tv-den","tvkayseri":"tv-kayseri","tvkayseritv":"tv-kayseri","tvnet":"tvnet","tvnettv":"tvnet","ucankus":"ucankus","ucankustv":"ucankus","ulke":"ulke-tv","ulketv":"ulke-tv","ulusal":"ulusal-tv","ulusaltv":"ulusal-tv","uzay":"uzay-tv","uzayhaber":"uzay-haber","uzayhabertv":"uzay-haber","uzaytv":"uzay-tv","vatan":"vatan-tv","vatantv":"vatan-tv","vav":"vav-tv","vavtv":"vav-tv","vizyon58":"vizyon-58","vizyon58tv":"vizyon-58","vizyonturk":"vizyon-turk","vizyonturktv":"vizyon-turk","yaban":"yaban","yabantv":"yaban","yildizen":"yildiz-en-tv","yildizentv":"yildiz-en-tv","yol":"yol-tv","yoltv":"yol-tv","zarok":"zarok-tv","zaroktv":"zarok-tv"};
+const TR_HARF={'ç':'c','ğ':'g','ı':'i','ö':'o','ş':'s','ü':'u','â':'a','î':'i','û':'u'};
+function sade(s){ return String(s||'').toLowerCase().replace(/[çğıöşüâîû]/g,c=>TR_HARF[c]).normalize('NFKD').replace(/[̀-ͯ]/g,''); }
+function logoAnahtar(ad){ let k=sade(ad).replace(/[^a-z0-9]/g,''); for(;;){ const y=k.replace(/(fhd|uhd|hd|sd)$/,''); if(y===k||!y) break; k=y; } return k; }
+const LOGO_TAKMA={number1:'nr1',number1tv:'nr1',number1turk:'nr1turk',numberone:'nr1',trtspor1:'trtspor',showtvhd:'show'};
+function logoBul(ad){ let k=logoAnahtar(ad); k=LOGO_TAKMA[k]||k; const f=LOGOLAR[k]||LOGOLAR[k.replace(/tv$/,'')]||LOGOLAR[k+'tv']; return f? LOGO_TABAN+encodeURIComponent(f+'-tr.png') : ''; }
+function harfRozet(ad){ const p=String(ad).replace(/\b(HD|FHD|UHD|SD)\b/gi,'').trim().split(/\s+/).filter(Boolean);
+  let t = p.length>1 ? (p[0][0]+p[1][0]) : ((p[0]||'?').length<=4 ? p[0] : p[0].slice(0,3)); if(/^\d/.test(p[1]||'')) t=p[0].slice(0,3)+p[1]; return t.toUpperCase().slice(0,4); }
+function renk(ad){ let h=0; for(const c of String(ad)) h=(h*31+c.charCodeAt(0))>>>0; return 'hsl('+(h%360)+' 55% 42%)'; }
+
+let kanalListe=[], simdiki='', kpFiltre='hepsi', kpYukleniyor=false;
+try{ kanalListe=JSON.parse(oku('kanallar','[]'))||[]; }catch(e){ kanalListe=[]; }
+
+function kanalSatiri(k){
+  const b=document.createElement('button'); b.className='kanal'+(k.id===simdiki?' simdi':''); b.dataset.id=k.id;
+  const no=document.createElement('span'); no.className='no'; no.textContent=k.no||'';
+  const lg=document.createElement('span'); lg.className='logo';
+  const url=k.logo||logoBul(k.ad);
+  const harf=()=>{ lg.className='logo harf'; lg.style.background=renk(k.ad); lg.textContent=harfRozet(k.ad); };
+  if(url){ const im=document.createElement('img'); im.loading='lazy'; im.alt=''; im.src=url; im.onerror=harf; lg.appendChild(im); } else harf();
+  const ad=document.createElement('span'); ad.className='ad'; ad.textContent=k.ad;
+  if(k.radyo){ const s=document.createElement('small'); s.textContent='Radyo'; ad.appendChild(s); }
+  b.append(no,lg,ad);
+  if(k.id===simdiki){ const r=document.createElement('span'); r.className='rozet'; r.textContent='ŞU AN'; b.appendChild(r); }
+  b.onclick=()=>kanalAc(k);
+  return b;
+}
+function kanallariCiz(){
+  const kutu=$('#kpListe'), q=sade($('#kpAra').value.trim());
+  $('#kpTemizle').classList.toggle('gizli',!q);
+  const radyoVar=kanalListe.some(k=>k.radyo)&&kanalListe.some(k=>!k.radyo);
+  $('#kpFiltre').classList.toggle('gizli',!radyoVar);
+  let liste=kanalListe.filter(k=> kpFiltre==='hepsi' || (kpFiltre==='radyo')===!!k.radyo );
+  if(q){ const qs=q.replace(/\s+/g,''); liste=liste.filter(k=> (k.no||'').startsWith(q) || sade(k.ad).includes(q) || sade(k.ad).replace(/[^a-z0-9]/g,'').includes(qs)); }
+  $('#kpSayi').textContent = kanalListe.length ? (q? liste.length+' / '+kanalListe.length : kanalListe.length) : '';
+  kutu.innerHTML='';
+  if(!kanalListe.length){ kutu.innerHTML = kpYukleniyor ? '<div class="kp-bos">Kanallar TV\'den alınıyor…</div>' : (kutu.dataset.hata||'<div class="kp-bos">Kanal bulunamadı.</div>'); return; }
+  if(!liste.length){ const d=document.createElement('div'); d.className='kp-bos'; d.append('"'); const b=document.createElement('b'); b.textContent=$('#kpAra').value.trim(); d.append(b,'" ile eşleşen kanal yok.'); kutu.appendChild(d); return; }
+  const parca=document.createDocumentFragment(); liste.forEach(k=>parca.appendChild(kanalSatiri(k))); kutu.appendChild(parca);
+}
+async function kanallariYukle(){
+  if(kpYukleniyor) return; kpYukleniyor=true; const kutu=$('#kpListe'); delete kutu.dataset.hata;
+  if(!kanalListe.length) kanallariCiz();
+  $('#kpYenile').style.opacity=.4;
+  try{
+    const r=await getj('/kanallar?c='+encodeURIComponent(secili));
+    if(r.kanallar && r.kanallar.length){ kanalListe=r.kanallar; simdiki=r.simdiki||''; yaz('kanallar',JSON.stringify(kanalListe)); }
+    else if(r.hata){
+      if(!kanalListe.length) kutu.dataset.hata='<div class="kp-bos"><b>Kanal listesi alınamadı.</b><br>'+r.hata.replace(/[<>&]/g,'')+'<br><br>TV\'de anten/uydu kanalları kurulu olmalı. TV yayınını açıp tekrar dene.</div>';
+      else bildir('Liste güncellenemedi, kayıtlı liste gösteriliyor');
+    }
+  }catch(e){ if(!kanalListe.length) kutu.dataset.hata='<div class="kp-bos"><b>Köprüye ulaşılamadı.</b></div>'; }
+  kpYukleniyor=false; $('#kpYenile').style.opacity=''; kanallariCiz();
+}
+async function kanalAc(k){
+  titre();
+  const r=await post('/kanal',{c:secili,id:k.id});
+  if(r.ok){ simdiki=k.id; bildir((k.no?k.no+' · ':'')+k.ad+' açıldı'); $('#kpAra').value=''; kanalPanelKapat(); return; }
+  sonuc(r);
+  if(!r.mesaj && !r.hata) bildir('Kanal açılamadı');
+}
+function kanalPanelAc(){
+  if(kopruSurum && kopruSurum<4){ bildir('Kanal listesi için Termux\'taki köprüyü güncelle'); return; }
+  $('#kanalPanel').classList.remove('gizli'); document.body.style.overflow='hidden';
+  kanallariCiz(); kanallariYukle();
+  try{ history.pushState({kanallar:1},''); }catch(e){}
+}
+function kanalPanelKapat(){
+  if($('#kanalPanel').classList.contains('gizli')) return;
+  $('#kanalPanel').classList.add('gizli'); document.body.style.overflow=''; $('#kpAra').blur();
+  try{ if(history.state&&history.state.kanallar) history.back(); }catch(e){}
+}
+window.addEventListener('popstate',()=>{ if(!$('#kanalPanel').classList.contains('gizli')){ $('#kanalPanel').classList.add('gizli'); document.body.style.overflow=''; } });
+$('#kanallarBtn').onclick=()=>{ titre(); kanalPanelAc(); };
+$('#kpKapat').onclick=kanalPanelKapat;
+$('#kpYenile').onclick=()=>{ titre(); kanallariYukle(); };
+$('#kpAra').addEventListener('input',kanallariCiz);
+$('#kpAra').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#kpAra').blur(); const ilk=$('#kpListe .kanal'); if(ilk && $('#kpAra').value.trim()) ilk.click(); } });
+$('#kpTemizle').onclick=()=>{ $('#kpAra').value=''; kanallariCiz(); $('#kpAra').focus(); };
+$$('#kpFiltre button').forEach(b=>b.onclick=()=>{ kpFiltre=b.dataset.f; $$('#kpFiltre button').forEach(x=>x.classList.toggle('aktif',x===b)); kanallariCiz(); });
 
 // Köprüye ulaşılamıyorken internetten açılan sayfada sık deneme Chrome'un izin penceresini
 // tekrar tekrar açabileceği için aralık uzatılır.
