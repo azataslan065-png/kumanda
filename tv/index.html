@@ -359,7 +359,8 @@ function yonlu(yon){
 }
 document.addEventListener('keydown',e=>{
   const k=e.key, oynatiyor=$('#oynatici').classList.contains('acik'), ekle=$('#ekle').classList.contains('acik');
-  const geri = k==='Escape'||k==='GoBack'||k==='BrowserBack'||(k==='Backspace'&&!(e.target.tagName==='INPUT'));
+  // 461 = LG webOS kumandasının Geri tuşu
+  const geri = k==='Escape'||k==='GoBack'||k==='BrowserBack'||e.keyCode===461||(k==='Backspace'&&!(e.target.tagName==='INPUT'));
   if(geri){ e.preventDefault(); if(ekle) ekleKapat(); else if(oynatiyor) kapat(); return; }
   if(e.target.tagName==='INPUT' && (k==='ArrowLeft'||k==='ArrowRight')) return;
   if(oynatiyor){

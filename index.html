@@ -3,24 +3,41 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#0d0f14">
-<title>HY350 Kumanda</title>
+<title>Kumanda</title>
 <style>
-:root{--bg:#0d0f14;--kart:#171a22;--tus:#222634;--tus2:#2c3142;--yazi:#e8ebf2;--soluk:#8a90a2;--vurgu:#4f8cff;--kirmizi:#ff4d5e;--yesil:#2ecc71}
+:root{--bg:#0d0f14;--kart:#171a22;--tus:#222634;--tus2:#2c3142;--yazi:#e8ebf2;--soluk:#8a90a2;--vurgu:#4f8cff;--kirmizi:#ff4d5e;--yesil:#2ecc71;--sari:#ffc94d}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{margin:0;background:var(--bg);color:var(--yazi);font-family:system-ui,-apple-system,Roboto,sans-serif;touch-action:manipulation}
-.kap{max-width:420px;margin:0 auto;padding:14px 16px 28px}
-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+button{font:inherit;color:inherit}
+.kap{max-width:420px;margin:0 auto;padding:14px 16px 32px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
 h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
-.durum{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--soluk);background:var(--kart);padding:7px 11px;border-radius:20px;border:0}
-.nokta{width:9px;height:9px;border-radius:50%;background:var(--kirmizi)}
+.dis{display:flex;gap:8px;align-items:center}
+.durum{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--soluk);background:var(--kart);padding:7px 11px;border-radius:20px;border:0;max-width:190px}
+.durum span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nokta{flex:none;width:9px;height:9px;border-radius:50%;background:var(--kirmizi)}
 .durum.ok .nokta{background:var(--yesil)}
+.durum.bekle .nokta{background:var(--sari);animation:yanson 1s infinite}
+@keyframes yanson{50%{opacity:.3}}
+.cark{background:var(--kart);border:0;color:var(--soluk);border-radius:20px;width:36px;height:34px;font-size:17px}
+.cihazlar{display:flex;gap:8px;margin-bottom:12px}
+.cihazlar button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--kart);border:2px solid transparent;border-radius:14px;padding:10px 8px;font-size:14px;font-weight:700;color:var(--soluk)}
+.cihazlar button.aktif{border-color:var(--vurgu);color:var(--yazi);background:#1a2235}
+.cihazlar .mini{width:7px;height:7px;border-radius:50%;background:var(--kirmizi)}
+.cihazlar .mini.ok{background:var(--yesil)}
+.cihazlar .mini.bekle{background:var(--sari)}
+.uyari{border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px;line-height:1.5}
+.uyari.kirmizi{background:#3a1c22;color:#ffb3bb}
+.uyari.sari{background:#3a3218;color:#ffe2a0}
+.uyari.mavi{background:#18233a;color:#b9cdfa}
+.uyari code{background:rgba(0,0,0,.3);padding:1px 5px;border-radius:5px;font-size:12px;user-select:text;-webkit-user-select:text}
 .sekmeler{display:flex;background:var(--kart);border-radius:12px;padding:4px;margin-bottom:14px}
 .sekmeler button{flex:1;background:none;border:0;color:var(--soluk);padding:9px;border-radius:9px;font-size:14px;font-weight:600}
 .sekmeler button.aktif{background:var(--tus2);color:var(--yazi)}
 .b{background:var(--tus);border:0;color:var(--yazi);border-radius:14px;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;min-height:52px;transition:transform .06s,background .06s}
 .b:active,.b.bas{transform:scale(.94);background:var(--tus2)}
 .b svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.ust{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+.ust{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .guc{color:var(--kirmizi)}
 .dpad{position:relative;width:260px;height:260px;margin:4px auto 18px;border-radius:50%;background:var(--kart)}
 .dpad .b{position:absolute;width:76px;height:76px;border-radius:50%;background:transparent}
@@ -28,125 +45,326 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 .dpad .y{top:6px;left:92px}.dpad .a{bottom:6px;left:92px}.dpad .s{left:6px;top:92px}.dpad .sg{right:6px;top:92px}
 .dpad .tamam{top:75px;left:75px;width:110px;height:110px;background:var(--vurgu);font-size:17px}
 .dpad .tamam:active,.dpad .tamam.bas{background:#3a73e0}
-.orta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+.uclu{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .alt{display:grid;grid-template-columns:64px 1fr 64px;gap:10px;margin-bottom:16px}
-.ses{display:flex;flex-direction:column;gap:10px}
-.medya{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dikey{display:flex;flex-direction:column;gap:10px}
+.dikey small{font-size:11px;color:var(--soluk);text-align:center;margin-top:-4px}
+.medya{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:10px}
+.medya.dort{grid-template-columns:repeat(4,1fr)}
+.medya .genis{grid-column:1/-1}
+.renkler{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.renkler .b{min-height:34px;border-radius:10px}
+.baslik{font-size:12px;font-weight:700;color:var(--soluk);letter-spacing:.6px;text-transform:uppercase;margin:4px 2px 8px}
+.uyg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.uyg .b{flex-direction:column;gap:4px;min-height:64px;font-size:13px}
+.uyg .b i{font-style:normal;font-size:20px;line-height:1}
+.girisler{display:flex;flex-wrap:wrap;gap:8px;margin:-6px 0 16px}
+.girisler .b{min-height:40px;padding:0 14px;font-size:13px;border-radius:20px}
+.girisler .b.yok{opacity:.45}
+.rakam{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .yazi{display:flex;gap:8px;margin-top:6px}
-.yazi input{flex:1;background:var(--kart);border:1px solid var(--tus2);color:var(--yazi);border-radius:12px;padding:0 14px;font-size:16px;min-height:50px;user-select:text;-webkit-user-select:text}
+.yazi input{flex:1;min-width:0;background:var(--kart);border:1px solid var(--tus2);color:var(--yazi);border-radius:12px;padding:0 14px;font-size:16px;min-height:50px;user-select:text;-webkit-user-select:text}
 .yazi .b{padding:0 16px}
-.not{font-size:12px;color:var(--soluk);margin:8px 2px 0;line-height:1.4}
+.not{font-size:12px;color:var(--soluk);margin:8px 2px 0;line-height:1.45}
 .ped{width:100%;aspect-ratio:16/9;background:var(--kart);border:1px solid var(--tus2);border-radius:14px;position:relative;touch-action:none;overflow:hidden}
-.ped span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--soluk);font-size:13px;pointer-events:none;text-align:center;padding:20px}
+.ped span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--soluk);font-size:13px;pointer-events:none;text-align:center;padding:20px;line-height:1.5}
 .iz{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:var(--vurgu);opacity:.6;pointer-events:none}
-.gizli{display:none}
-.ayar{background:var(--kart);border-radius:12px;padding:12px;margin-bottom:14px;font-size:13px;color:var(--soluk)}
-.ayar input{width:100%;margin:6px 0 8px;background:var(--bg);border:1px solid var(--tus2);color:var(--yazi);border-radius:10px;padding:10px;font-size:15px;user-select:text;-webkit-user-select:text}
-.ayar .b{min-height:42px;width:100%}
-.uyari{background:#3a1c22;color:#ffb3bb;border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:14px;line-height:1.45}
-.dis{display:flex;gap:8px;align-items:center}
-.cark{background:var(--kart);border:0;color:var(--soluk);border-radius:20px;width:34px;height:32px;font-size:16px}
+.gizli{display:none!important}
+/* ayarlar */
+.ayar{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.panel{background:var(--kart);width:100%;max-width:460px;border-radius:20px 20px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+.panel h2{margin:0 0 4px;font-size:17px}
+.panel .alt-yazi{color:var(--soluk);font-size:13px;margin:0 0 14px;line-height:1.45}
+.alan{margin-bottom:12px}
+.alan label{display:block;font-size:13px;color:var(--soluk);margin-bottom:5px}
+.alan input{width:100%;background:var(--bg);border:1px solid var(--tus2);color:var(--yazi);border-radius:10px;padding:11px;font-size:15px;user-select:text;-webkit-user-select:text}
+.alan small{display:block;color:var(--soluk);font-size:12px;margin-top:5px;line-height:1.4}
+.bulunan{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.bulunan button{background:#1a2235;border:1px solid var(--vurgu);color:#b9cdfa;border-radius:16px;padding:5px 10px;font-size:13px}
+.panel .satir{display:flex;gap:10px;margin-top:6px}
+.panel .satir .b{flex:1;min-height:46px}
+.panel .ana{background:var(--vurgu)}
+.ayrac{height:1px;background:var(--tus2);margin:16px 0}
+.bildirim{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#262c3c;padding:10px 16px;border-radius:12px;font-size:14px;z-index:30;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
+.bildirim.var{opacity:1}
 </style></head><body><div class="kap">
-<header><h1>HY350 MAX</h1><div class="dis"><button class="durum" id="durum"><span class="nokta"></span><span id="durumYazi">Kontrol…</span></button><button class="cark" id="carkBtn" aria-label="Ayarlar">⚙</button></div></header>
-<div class="ayar gizli" id="ayar">Köprü sunucusu adresi
-<input id="sunucuGir" inputmode="url" autocomplete="off"><button class="b" id="kaydet">Kaydet ve bağlan</button></div>
-<div class="uyari gizli" id="uyari">Köprüye ulaşılamıyor. Termux'ta <b>python kumanda.py IP:PORT</b> çalışıyor olmalı.</div>
+<header>
+  <h1>Kumanda</h1>
+  <div class="dis"><button class="durum" id="durum"><span class="nokta"></span><span id="durumYazi">Kontrol…</span></button><button class="cark" id="carkBtn" aria-label="Ayarlar">⚙</button></div>
+</header>
+
+<div class="cihazlar" id="cihazlar"></div>
+<div class="uyari kirmizi gizli" id="uyari"></div>
+
+<div id="anaPanel">
 <div class="sekmeler"><button class="aktif" data-s="kumanda">Kumanda</button><button data-s="ped">Dokunmatik</button></div>
 
 <section id="kumanda">
 <div class="ust">
-<button class="b guc" data-k="26"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></button>
-<button class="b" data-k="176"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-<button class="b" data-k="164"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m23 9-6 6M17 9l6 6"/></svg></button>
+  <button class="b guc" data-t="GUC" aria-label="Güç"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></button>
+  <button class="b" data-t="AYARLAR" aria-label="Ayarlar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  <button class="b" data-t="SESSIZ" aria-label="Sessiz"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m23 9-6 6M17 9l6 6"/></svg></button>
 </div>
 
 <div class="dpad">
-<button class="b y" data-k="19" data-tekrar><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
-<button class="b s" data-k="21" data-tekrar><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
-<button class="b tamam" data-k="23">OK</button>
-<button class="b sg" data-k="22" data-tekrar><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
-<button class="b a" data-k="20" data-tekrar><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+  <button class="b y" data-t="YUKARI" data-tekrar aria-label="Yukarı"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
+  <button class="b s" data-t="SOL" data-tekrar aria-label="Sol"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+  <button class="b tamam" data-t="TAMAM">OK</button>
+  <button class="b sg" data-t="SAG" data-tekrar aria-label="Sağ"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+  <button class="b a" data-t="ASAGI" data-tekrar aria-label="Aşağı"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
 </div>
 
-<div class="orta">
-<button class="b" data-k="4"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Geri</button>
-<button class="b" data-k="3"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Ana</button>
-<button class="b" data-k="82"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Menü</button>
+<div class="uclu">
+  <button class="b" data-t="GERI"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Geri</button>
+  <button class="b" data-t="ANA"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Ana</button>
+  <button class="b" data-t="MENU" data-yalniz="adb"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Menü</button>
+  <button class="b" data-t="CIKIS" data-yalniz="lg"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>Çıkış</button>
 </div>
 
 <div class="alt">
-<div class="ses">
-<button class="b" data-k="24" data-tekrar><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-<button class="b" data-k="25" data-tekrar><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
-</div>
-<div class="medya" style="grid-template-rows:1fr 1fr">
-<button class="b" data-k="89"><svg viewBox="0 0 24 24"><path d="M11 19 2 12l9-7zM22 19l-9-7 9-7z"/></svg></button>
-<button class="b" data-k="85"><svg viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></button>
-<button class="b" data-k="90"><svg viewBox="0 0 24 24"><path d="m13 19 9-7-9-7zM2 19l9-7-9-7z"/></svg></button>
-<button class="b" data-k="187" style="grid-column:span 3"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Son uygulamalar</button>
-</div>
-<div class="ses">
-<button class="b" data-k="166" data-tekrar>CH+</button>
-<button class="b" data-k="167" data-tekrar>CH−</button>
-</div>
+  <div class="dikey">
+    <button class="b" data-t="SES+" data-tekrar aria-label="Ses aç"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    <small>SES</small>
+    <button class="b" data-t="SES-" data-tekrar aria-label="Ses kıs"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+  </div>
+  <div class="medya" id="medya">
+    <button class="b" data-t="GERI_SAR" aria-label="Geri sar"><svg viewBox="0 0 24 24"><path d="M11 19 2 12l9-7zM22 19l-9-7 9-7z"/></svg></button>
+    <button class="b" data-t="OYNAT_DURAKLAT" data-yalniz="adb" aria-label="Oynat/Duraklat"><svg viewBox="0 0 24 24"><path d="M5 4l9 8-9 8z"/><path d="M17 5v14M21 5v14"/></svg></button>
+    <button class="b" data-t="OYNAT" data-yalniz="lg" aria-label="Oynat"><svg viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></button>
+    <button class="b" data-t="DURAKLAT" data-yalniz="lg" aria-label="Duraklat"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button>
+    <button class="b" data-t="ILERI_SAR" aria-label="İleri sar"><svg viewBox="0 0 24 24"><path d="m13 19 9-7-9-7zM2 19l9-7-9-7z"/></svg></button>
+    <button class="b genis" data-t="SON" data-yalniz="adb"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Son uygulamalar</button>
+    <button class="b genis" id="rakamBtn" data-yalniz="lg">123 · Rakamlar</button>
+  </div>
+  <div class="dikey">
+    <button class="b" data-t="KANAL+" data-tekrar>CH+</button>
+    <small>KANAL</small>
+    <button class="b" data-t="KANAL-" data-tekrar>CH−</button>
+  </div>
 </div>
 
-<div class="yazi"><input id="metin" placeholder="Projeksiyona yazı gönder…" autocomplete="off"><button class="b" id="gonder">Gönder</button></div>
-<div class="yazi"><button class="b" data-k="67" style="flex:1">⌫ Sil</button><button class="b" data-k="66" style="flex:1">↵ Enter</button></div>
-<p class="not">Türkçe harfler sadeleştirilir (ç→c, ş→s…).</p>
+<div class="rakam gizli" id="rakam">
+  <button class="b" data-t="1">1</button><button class="b" data-t="2">2</button><button class="b" data-t="3">3</button>
+  <button class="b" data-t="4">4</button><button class="b" data-t="5">5</button><button class="b" data-t="6">6</button>
+  <button class="b" data-t="7">7</button><button class="b" data-t="8">8</button><button class="b" data-t="9">9</button>
+  <button class="b" data-t="BILGI">Bilgi</button><button class="b" data-t="0">0</button><button class="b" data-t="TAMAM">OK</button>
+</div>
+
+<div class="renkler" data-yalniz="lg">
+  <button class="b" data-t="KIRMIZI" style="background:#c62f3a" aria-label="Kırmızı"></button>
+  <button class="b" data-t="YESIL" style="background:#2e9a4f" aria-label="Yeşil"></button>
+  <button class="b" data-t="SARI" style="background:#d6b02b" aria-label="Sarı"></button>
+  <button class="b" data-t="MAVI" style="background:#2f62c6" aria-label="Mavi"></button>
+</div>
+
+<div class="baslik">Uygulamalar</div>
+<div class="uyg" id="uyg">
+  <button class="b" data-ac="canli"><i>📡</i>Canlı TV</button>
+  <button class="b" data-uyg="youtube.leanback.v4" data-yalniz="lg"><i>▶</i>YouTube</button>
+  <button class="b" data-uyg="netflix" data-yalniz="lg"><i>N</i>Netflix</button>
+  <button class="b" data-uyg="com.webos.app.livetv" data-yalniz="lg"><i>📺</i>TV yayını</button>
+  <button class="b" data-uyg="com.disney.disneyplus-prod" data-yalniz="lg"><i>✦</i>Disney+</button>
+  <button class="b" id="kaynakBtn" data-yalniz="lg"><i>⇄</i>Kaynak</button>
+</div>
+<div class="girisler gizli" id="girisler"></div>
+
+<div class="yazi"><input id="metin" placeholder="Ekrana yazı gönder…" autocomplete="off"><button class="b" id="gonder">Gönder</button></div>
+<div class="yazi"><button class="b" data-t="SIL" style="flex:1">⌫ Sil</button><button class="b" data-t="ENTER" style="flex:1">↵ Enter</button></div>
+<p class="not" id="yaziNot"></p>
 </section>
 
 <section id="ped" class="gizli">
-<div class="ped" id="pedAlan"><span>Dokun = tıkla · Kaydır = sürükle/kaydır<br>Alan projeksiyon ekranıyla birebir eşleşir</span></div>
-<div class="orta" style="margin-top:14px">
-<button class="b" data-k="4">Geri</button><button class="b" data-k="3">Ana</button><button class="b" data-k="85">⏯</button>
-</div>
+  <div class="ped" id="pedAlan"><span id="pedYazi"></span></div>
+  <div class="uclu" style="margin-top:14px">
+    <button class="b" data-teker="-1" data-yalniz="lg">▲ Kaydır</button>
+    <button class="b" data-teker="1" data-yalniz="lg">▼ Kaydır</button>
+    <button class="b" data-t="GERI" data-yalniz="lg">Geri</button>
+    <button class="b" data-t="GERI" data-yalniz="adb">Geri</button><button class="b" data-t="ANA" data-yalniz="adb">Ana</button><button class="b" data-t="OYNAT_DURAKLAT" data-yalniz="adb">⏯</button>
+  </div>
 </section>
 </div>
-<script>
-const $=s=>document.querySelector(s);
-let SUNUCU='http://127.0.0.1:8080';
-try{SUNUCU=localStorage.getItem('hy350_sunucu')||SUNUCU}catch(e){}
-$('#sunucuGir').value=SUNUCU;
-$('#carkBtn').onclick=()=>$('#ayar').classList.toggle('gizli');
-$('#kaydet').onclick=()=>{SUNUCU=$('#sunucuGir').value.trim().replace(/\/+$/,'')||'http://127.0.0.1:8080';
-  try{localStorage.setItem('hy350_sunucu',SUNUCU)}catch(e){}$('#ayar').classList.add('gizli');$('#durum').click()};
-function post(yol,veri){return fetch(SUNUCU+yol,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(veri)}).then(r=>r.json()).catch(()=>({ok:false}))}
-function titre(){try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}}
-function tus(k){titre();return post('/tus',{k})}
 
-document.querySelectorAll('[data-k]').forEach(b=>{
-  let z1,z2;const k=b.dataset.k,tekrar=b.hasAttribute('data-tekrar');
+<div class="uyari mavi gizli" id="kurulum">
+  <b>Henüz cihaz eklenmedi.</b><br>Sağ üstteki ⚙ menüsünden projeksiyonunu ya da LG TV'ni ekle. "Ağda ara" ile adresleri otomatik bulabilirsin.
+</div>
+</div>
+
+<div class="ayar gizli" id="ayar">
+  <div class="panel">
+    <h2>Cihazlar</h2>
+    <p class="alt-yazi">Telefon, projeksiyon ve TV aynı Wi‑Fi'da olmalı. Boş bıraktığın cihaz kaldırılır.</p>
+    <div class="alan">
+      <label>📺 LG TV adresi</label><input id="tvAdres" inputmode="decimal" placeholder="192.168.1.50" autocomplete="off">
+      <small>TV: Ayarlar → Genel → Ağ → Wi‑Fi bağlantısı → gelişmiş ayarlar'da IP görünür.</small>
+      <div class="bulunan" id="tvBulunan"></div>
+    </div>
+    <div class="alan">
+      <label>TV MAC adresi (kapalı TV'yi açmak için, isteğe bağlı)</label><input id="tvMac" placeholder="a8:23:fe:12:34:56" autocomplete="off">
+      <small>TV'ye bir kez bağlanınca çoğu zaman kendiliğinden bulunur. TV'de "Wi‑Fi ile aç / Mobil ile TV'yi aç" ayarı açık olmalı.</small>
+    </div>
+    <div class="alan">
+      <label>📽 Projeksiyon adresi (ADB)</label><input id="projAdres" inputmode="decimal" placeholder="192.168.1.40:5555" autocomplete="off">
+      <div class="bulunan" id="projBulunan"></div>
+    </div>
+    <div class="satir"><button class="b" id="taraBtn">🔍 Ağda ara</button><button class="b ana" id="kaydetBtn">Kaydet ve bağlan</button></div>
+    <div class="ayrac"></div>
+    <div class="alan">
+      <label>Köprü adresi</label><input id="sunucuGir" inputmode="url" autocomplete="off">
+      <small>Termux'taki köprü. Değiştirmen gerekmez.</small>
+    </div>
+    <div class="satir"><button class="b" id="kapatBtn">Kapat</button></div>
+  </div>
+</div>
+<div class="bildirim" id="bildirim"></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const CANLI_TV='https://azataslan065-png.github.io/kumanda/tv/';
+function oku(k,v){try{const x=localStorage.getItem('kmd_'+k);return x===null?v:x}catch(e){return v}}
+function yaz(k,v){try{localStorage.setItem('kmd_'+k,v)}catch(e){}}
+
+let SUNUCU = (location.protocol==='http:' && location.port==='8080') ? location.origin
+  : (oku('sunucu',null) || (()=>{try{return localStorage.getItem('hy350_sunucu')}catch(e){return null}})() || 'http://127.0.0.1:8080');
+let secili = oku('secili', null);
+let cihazlar = [], ayarlar = {}, kopruVar = null, adbVar = true;
+
+function post(yol,veri){return fetch(SUNUCU+yol,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(veri)}).then(r=>r.json()).catch(()=>({ok:false,ag:true}))}
+function getj(yol){return fetch(SUNUCU+yol,{cache:'no-store'}).then(r=>r.json())}
+function titre(){try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}}
+function bildir(t){const b=$('#bildirim');b.textContent=t;b.classList.add('var');clearTimeout(bildir.z);bildir.z=setTimeout(()=>b.classList.remove('var'),2600)}
+function aktif(){return cihazlar.find(c=>c.id===secili)}
+function sonuc(r){ if(r && r.ok===false && !r.ag){ if(r.mesaj) bildir(r.mesaj); else if(r.hata) bildir(r.hata); else if(r.durum && r.durum!=='bagli') bildir('Cihaza bağlanılıyor…'); } return r; }
+function tus(t){titre(); if(!secili) return; return post('/tus',{c:secili,t}).then(sonuc)}
+
+// ── tuşlar (basılı tutunca tekrar) ──
+$$('[data-t]').forEach(b=>{
+  let z1,z2; const t=b.dataset.t, tekrar=b.hasAttribute('data-tekrar');
   const dur=()=>{clearTimeout(z1);clearInterval(z2);b.classList.remove('bas')};
-  b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('bas');tus(k);
-    if(tekrar){z1=setTimeout(()=>{z2=setInterval(()=>tus(k),130)},420)}});
-  ['pointerup','pointerleave','pointercancel'].forEach(t=>b.addEventListener(t,dur));
+  b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('bas');tus(t);
+    if(tekrar){z1=setTimeout(()=>{z2=setInterval(()=>tus(t),130)},420)}});
+  ['pointerup','pointerleave','pointercancel'].forEach(x=>b.addEventListener(x,dur));
   b.addEventListener('contextmenu',e=>e.preventDefault());
 });
+$$('[data-uyg]').forEach(b=>b.onclick=()=>{titre();post('/uygulama',{c:secili,id:b.dataset.uyg}).then(r=>{sonuc(r); if(r.ok) bildir(b.textContent.trim()+' açılıyor')})});
+$$('[data-ac]').forEach(b=>b.onclick=()=>{titre();post('/ac',{c:secili,url:CANLI_TV}).then(r=>{sonuc(r); if(r.ok) bildir('Canlı TV açılıyor')})});
+$$('[data-teker]').forEach(b=>b.onclick=()=>{titre();post('/teker',{c:secili,dx:0,dy:b.dataset.teker*4})});
+$('#rakamBtn').onclick=()=>{titre();$('#rakam').classList.toggle('gizli')};
+$('#kaynakBtn').onclick=async()=>{
+  titre(); const k=$('#girisler');
+  if(!k.classList.contains('gizli')){k.classList.add('gizli');return}
+  k.innerHTML='<span class="not">Yükleniyor…</span>'; k.classList.remove('gizli');
+  try{ const r=await getj('/girisler?c='+encodeURIComponent(secili)); k.innerHTML='';
+    if(!r.girisler.length){k.innerHTML='<span class="not">Giriş listesi alınamadı. TV bağlı mı?</span>';return}
+    r.girisler.forEach(g=>{const b=document.createElement('button');b.className='b'+(g.bagli?'':' yok');b.textContent=g.ad;
+      b.onclick=()=>{titre();post('/giris',{c:secili,id:g.id}).then(x=>{sonuc(x); if(x.ok){bildir(g.ad+' seçildi');k.classList.add('gizli')}})};k.appendChild(b)});
+  }catch(e){k.innerHTML='<span class="not">Köprüye ulaşılamadı.</span>'}
+};
 
-function yaziGonder(){const t=$('#metin').value;if(!t)return;titre();post('/yazi',{t}).then(r=>{if(r.ok)$('#metin').value=''})}
+// ── yazı ──
+function yaziGonder(){const t=$('#metin').value;if(!t||!secili)return;titre();post('/yazi',{c:secili,t}).then(r=>{sonuc(r);if(r.ok)$('#metin').value=''})}
 $('#gonder').onclick=yaziGonder;
 $('#metin').addEventListener('keydown',e=>{if(e.key==='Enter')yaziGonder()});
 
-document.querySelectorAll('.sekmeler button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.sekmeler button').forEach(x=>x.classList.toggle('aktif',x===b));
+// ── sekmeler ──
+$$('.sekmeler button').forEach(b=>b.onclick=()=>{
+  $$('.sekmeler button').forEach(x=>x.classList.toggle('aktif',x===b));
   ['kumanda','ped'].forEach(id=>$('#'+id).classList.toggle('gizli',id!==b.dataset.s));
 });
 
-const ped=$('#pedAlan');let bas=null;
+// ── dokunmatik ──
+const ped=$('#pedAlan'); let bas=null, birikim={dx:0,dy:0}, yolda=false, sonNokta=null;
 function konum(e){const r=ped.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height}}
 function iz(p){const d=document.createElement('div');d.className='iz';d.style.left=(p.x*100)+'%';d.style.top=(p.y*100)+'%';ped.appendChild(d);setTimeout(()=>d.remove(),300)}
-ped.addEventListener('pointerdown',e=>{ped.setPointerCapture(e.pointerId);bas={...konum(e),t:Date.now()}});
-ped.addEventListener('pointerup',e=>{if(!bas)return;const s=konum(e),ms=Date.now()-bas.t;
-  const d=Math.hypot((s.x-bas.x)*16,(s.y-bas.y)*9);titre();
-  if(d<0.4){iz(s);post('/dokun',{x:s.x,y:s.y})}
-  else{iz(bas);iz(s);post('/kaydir',{x1:bas.x,y1:bas.y,x2:s.x,y2:s.y,ms:Math.max(120,ms)})}
-  bas=null});
+function imlecGonder(){
+  if(yolda||(!birikim.dx&&!birikim.dy)) return;
+  const v={c:secili,dx:Math.round(birikim.dx),dy:Math.round(birikim.dy)}; birikim={dx:0,dy:0}; yolda=true;
+  post('/imlec',v).finally(()=>{yolda=false; imlecGonder()});
+}
+ped.addEventListener('pointerdown',e=>{ped.setPointerCapture(e.pointerId);bas={...konum(e),t:Date.now(),px:e.clientX,py:e.clientY,yol:0};sonNokta={x:e.clientX,y:e.clientY}});
+ped.addEventListener('pointermove',e=>{
+  if(!bas||!sonNokta) return;
+  const dx=e.clientX-sonNokta.x, dy=e.clientY-sonNokta.y; sonNokta={x:e.clientX,y:e.clientY}; bas.yol+=Math.hypot(dx,dy);
+  if(aktif()?.tur==='lg'){ birikim.dx+=dx*1.8; birikim.dy+=dy*1.8; imlecGonder(); }
+});
+ped.addEventListener('pointerup',e=>{if(!bas)return;const s=konum(e),ms=Date.now()-bas.t;titre();
+  if(aktif()?.tur==='lg'){ if(bas.yol<10&&ms<350){iz(s);post('/tikla',{c:secili})} }
+  else{ const d=Math.hypot((s.x-bas.x)*16,(s.y-bas.y)*9);
+    if(d<0.4){iz(s);post('/dokun',{c:secili,x:s.x,y:s.y})}
+    else{iz(bas);iz(s);post('/kaydir',{c:secili,x1:bas.x,y1:bas.y,x2:s.x,y2:s.y,ms:Math.max(120,ms)})} }
+  bas=null;sonNokta=null});
 
-async function durum(){try{const r=await (await fetch(SUNUCU+'/durum',{cache:'no-store'})).json();
-  $('#uyari').classList.add('gizli');
-  $('#durum').classList.toggle('ok',r.bagli);$('#durumYazi').textContent=r.bagli?'Bağlı':'Projeksiyon yok'}
-  catch(e){$('#durum').classList.remove('ok');$('#durumYazi').textContent='Köprü kapalı';$('#uyari').classList.remove('gizli')}}
-$('#durum').onclick=async()=>{$('#durumYazi').textContent='Bağlanıyor…';await post('/baglan',{});durum()};
-durum();setInterval(durum,5000);
+// ── cihaz seçimi ve durum ──
+const AD_DURUM={bagli:'Bağlı',baglaniyor:'Bağlanıyor…',onay:'TV onayı bekleniyor',kapali:'Kapalı',hata:'Hata'};
+function cihazlariCiz(){
+  const k=$('#cihazlar'); k.innerHTML='';
+  if(cihazlar.length<2){k.classList.add('gizli')} else k.classList.remove('gizli');
+  cihazlar.forEach(c=>{const b=document.createElement('button');b.className=c.id===secili?'aktif':'';
+    const cls=c.durum==='bagli'?'ok':(c.durum==='baglaniyor'||c.durum==='onay')?'bekle':'';
+    b.innerHTML='<span class="mini '+cls+'"></span>'+(c.tur==='lg'?'📺 ':'📽 ')+'<span></span>';b.lastChild.textContent=c.ad;
+    b.onclick=()=>{secili=c.id;yaz('secili',c.id);titre();$('#girisler').classList.add('gizli');arayuz()};k.appendChild(b)});
+}
+function arayuz(){
+  if(!aktif() && cihazlar.length) { secili=cihazlar[0].id; yaz('secili',secili); }
+  const c=aktif(), tur=c?c.tur:'adb';
+  $$('[data-yalniz]').forEach(el=>el.classList.toggle('gizli',el.dataset.yalniz!==tur));
+  $('#medya').classList.toggle('dort',tur==='lg');
+  const kurulumGerek = kopruVar===true && !cihazlar.length;
+  $('#kurulum').classList.toggle('gizli',!kurulumGerek);
+  $('#anaPanel').classList.toggle('gizli',kurulumGerek);
+  $('#yaziNot').textContent = tur==='lg' ? 'TV\'de bir yazı alanı açıkken çalışır (ör. YouTube arama).' : 'Türkçe harfler sadeleştirilir (ç→c, ş→s…).';
+  $('#pedYazi').innerHTML = tur==='lg' ? 'Parmağını kaydır = imleci oynat<br>Dokun = tıkla' : 'Dokun = tıkla · Kaydır = sürükle<br>Alan ekranla birebir eşleşir';
+  cihazlariCiz();
+  const d=$('#durum'), u=$('#uyari');
+  d.classList.remove('ok','bekle'); u.className='uyari gizli';
+  if(kopruVar===false){ $('#durumYazi').textContent='Köprü kapalı';
+    u.className='uyari kirmizi'; u.innerHTML='Köprüye ulaşılamıyor. Termux\'ta <code>python kumanda.py</code> çalışıyor olmalı.'; return; }
+  if(kopruVar==='eski'){ $('#durumYazi').textContent='Köprü eski';
+    u.className='uyari sari'; u.innerHTML='Termux\'taki köprü eski sürüm. Köprüyü Ctrl+C ile durdurup şunu çalıştır:<br><code>curl -LO https://raw.githubusercontent.com/azataslan065-png/kumanda/main/kumanda.py && curl -LO https://raw.githubusercontent.com/azataslan065-png/kumanda/main/index.html && python kumanda.py</code>'; return; }
+  if(!c){ $('#durumYazi').textContent='Cihaz yok'; return; }
+  $('#durumYazi').textContent=AD_DURUM[c.durum]||c.durum;
+  if(c.durum==='bagli') d.classList.add('ok'); else if(c.durum==='baglaniyor'||c.durum==='onay') d.classList.add('bekle');
+  if(c.durum==='onay'){ u.className='uyari sari'; u.innerHTML='<b>TV ekranına bak.</b> Çıkan izin isteğini TV\'nin kendi kumandasıyla <b>Kabul et</b>. Bu yalnızca ilk seferde sorulur.'; }
+  else if(c.tur==='adb' && !adbVar){ u.className='uyari kirmizi'; u.innerHTML='Projeksiyon için ADB gerekli. Termux\'ta: <code>pkg install android-tools</code>'; }
+  else if(c.durum!=='bagli' && c.mesaj){ u.className='uyari '+(c.durum==='hata'?'kirmizi':'mavi'); u.textContent=c.mesaj; }
+}
+async function durum(){
+  try{ const r=await getj('/durum');
+    if(r.surum===undefined){ kopruVar='eski'; cihazlar=[]; }
+    else { kopruVar=true; adbVar=r.adb!==false; cihazlar=r.cihazlar||[]; ayarlar=r.ayar||{}; }
+  }catch(e){ kopruVar=false; cihazlar=[]; }
+  arayuz();
+}
+$('#durum').onclick=async()=>{ if(!secili){ayarAc();return} $('#durumYazi').textContent='Bağlanıyor…'; await post('/baglan',{c:secili}); setTimeout(durum,600) };
+
+// ── ayarlar ──
+function ayarAc(){
+  $('#tvAdres').value=ayarlar.tv||''; $('#tvMac').value=ayarlar.mac||''; $('#projAdres').value=ayarlar.projeksiyon||'';
+  $('#sunucuGir').value=SUNUCU; $('#tvBulunan').innerHTML=''; $('#projBulunan').innerHTML='';
+  $('#ayar').classList.remove('gizli');
+}
+$('#carkBtn').onclick=ayarAc;
+$('#kapatBtn').onclick=()=>{ const s=$('#sunucuGir').value.trim().replace(/\/+$/,''); if(s&&s!==SUNUCU){SUNUCU=s;yaz('sunucu',s);durum()} $('#ayar').classList.add('gizli') };
+$('#ayar').addEventListener('click',e=>{ if(e.target.id==='ayar') $('#kapatBtn').click() });
+$('#taraBtn').onclick=async()=>{
+  const b=$('#taraBtn'); b.textContent='Aranıyor…'; b.disabled=true;
+  try{ const r=await getj('/tara');
+    const doldur=(liste,kutu,input)=>{ kutu.innerHTML=''; if(!liste.length){kutu.innerHTML='<small>Bulunamadı</small>';return}
+      liste.forEach(a=>{const x=document.createElement('button');x.textContent=a;x.onclick=()=>{input.value=a};kutu.appendChild(x)}); };
+    if(r.hata) bildir(r.hata);
+    doldur(r.lg||[],$('#tvBulunan'),$('#tvAdres')); doldur(r.adb||[],$('#projBulunan'),$('#projAdres'));
+    if((r.lg||[]).length===1 && !$('#tvAdres').value) $('#tvAdres').value=r.lg[0];
+    if((r.adb||[]).length===1 && !$('#projAdres').value) $('#projAdres').value=r.adb[0];
+  }catch(e){ bildir('Köprüye ulaşılamadı') }
+  b.textContent='🔍 Ağda ara'; b.disabled=false;
+};
+$('#kaydetBtn').onclick=async()=>{
+  const s=$('#sunucuGir').value.trim().replace(/\/+$/,''); if(s&&s!==SUNUCU){SUNUCU=s;yaz('sunucu',s)}
+  const r=await post('/ayarla',{tv:$('#tvAdres').value.trim(),mac:$('#tvMac').value.trim(),projeksiyon:$('#projAdres').value.trim()});
+  if(r.ag){ bildir('Köprüye ulaşılamadı'); return; }
+  if(!r.ok){ bildir(r.hata||'Kaydedilemedi'); return; }
+  if($('#tvAdres').value.trim()){ secili='tv'; yaz('secili','tv'); } else if($('#projAdres').value.trim()){ secili='projeksiyon'; yaz('secili','projeksiyon'); }
+  $('#ayar').classList.add('gizli'); bildir('Kaydedildi, bağlanılıyor…'); setTimeout(durum,500);
+};
+
+durum(); setInterval(durum,3000);
 </script></body></html>
