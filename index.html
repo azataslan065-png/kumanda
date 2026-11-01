@@ -350,8 +350,10 @@ $('#taraBtn').onclick=async()=>{
   try{ const r=await getj('/tara');
     const doldur=(liste,kutu,input)=>{ kutu.innerHTML=''; if(!liste.length){kutu.innerHTML='<small>Bulunamadı</small>';return}
       liste.forEach(a=>{const x=document.createElement('button');x.textContent=a;x.onclick=()=>{input.value=a};kutu.appendChild(x)}); };
-    if(r.hata) bildir(r.hata);
-    doldur(r.lg||[],$('#tvBulunan'),$('#tvAdres')); doldur(r.adb||[],$('#projBulunan'),$('#projAdres'));
+    if(r.hata){ $('#tvBulunan').innerHTML=''; $('#projBulunan').innerHTML='';
+      const u=document.createElement('div'); u.className='uyari sari'; u.style.margin='8px 0 0'; u.textContent=r.hata; $('#tvBulunan').appendChild(u);
+    } else {
+    doldur(r.lg||[],$('#tvBulunan'),$('#tvAdres')); doldur(r.adb||[],$('#projBulunan'),$('#projAdres')); }
     if((r.lg||[]).length===1 && !$('#tvAdres').value) $('#tvAdres').value=r.lg[0];
     if((r.adb||[]).length===1 && !$('#projAdres').value) $('#projAdres').value=r.adb[0];
   }catch(e){ bildir('Köprüye ulaşılamadı') }

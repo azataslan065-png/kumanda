@@ -59,10 +59,21 @@ def port_acik(ip, port, sure=0.4):
     finally:
         s.close()
 
+def ev_agi_mi(ip):
+    """Ev Wi-Fi'larının kullandığı özel adres aralıkları. Mobil veri (ör. 100.64.0.0/10) bunlara girmez."""
+    try:
+        a, b = (int(x) for x in ip.split('.')[:2])
+    except Exception:
+        return False
+    return a == 10 or (a == 172 and 16 <= b <= 31) or (a == 192 and b == 168)
+
+WIFI_UYARI = ('Telefon Wi-Fi\'a bağlı değil (mobil veri kullanıyor). '
+              'Telefonu TV/projeksiyonla aynı Wi-Fi\'a bağlayıp tekrar ara.')
+
 def ag_tara():
     ip = yerel_ip()
-    if not ip:
-        return {'hata': 'Wi-Fi ağına bağlı değilsin', 'adb': [], 'lg': []}
+    if not ip or not ev_agi_mi(ip):
+        return {'hata': WIFI_UYARI, 'adb': [], 'lg': []}
     taban = ip.rsplit('.', 1)[0]
     hedefler = [('%s.%d' % (taban, i), p) for i in range(1, 255) for p in (5555, 3000, 3001)]
     adb, lg = [], set()
@@ -74,6 +85,10 @@ def ag_tara():
                 adb.append(adres + ':5555')
             else:
                 lg.add(adres)
+    # Her adres "açık" görünüyorsa ağ bağlantıları yakalıyor demektir; liste güvenilmez.
+    if len(adb) > 20 or len(lg) > 20:
+        return {'hata': 'Bu ağda arama güvenilir sonuç vermiyor. Adresi TV\'nin ağ ayarlarından bakıp elle yaz.',
+                'adb': [], 'lg': []}
     return {'ag': taban + '.x', 'adb': adb, 'lg': sorted(lg, key=lambda a: int(a.rsplit('.', 1)[1]))}
 
 def mac_duzelt(m):
