@@ -229,7 +229,30 @@ class WS:
             pass
 
 # ───────────────────────── LG webOS ─────────────────────────
-# LG'nin uzaktan kumanda uygulamalarının kullandığı imzalı izin bildirimi
+# Yeni LG yazılımları (webOS 26) için imzasız izin bildirimi.
+# Home Assistant'ın aiowebostv kütüphanesindeki düzeltmeyle aynı (Apache-2.0, "Fix webOS 26 pairing handshake").
+# Yeni TV'ler eski imzalı sertifikayı "blacklisted certificate" diyerek reddediyor.
+LG_KAYIT_YENI = {
+    "forcePairing": False,
+    "pairingType": "PROMPT",
+    "manifest": {
+        "appVersion": "1.1",
+        "manifestVersion": 1,
+        "permissions": [
+            "APP_TO_APP", "CLOSE", "CONTROL_AUDIO", "CONTROL_DISPLAY", "CONTROL_INPUT_JOYSTICK",
+            "CONTROL_INPUT_MEDIA_PLAYBACK", "CONTROL_INPUT_MEDIA_RECORDING", "CONTROL_INPUT_TEXT",
+            "CONTROL_INPUT_TV", "CONTROL_MOUSE_AND_KEYBOARD", "CONTROL_POWER", "CONTROL_TV_SCREEN",
+            "LAUNCH", "LAUNCH_WEBAPP", "READ_APP_STATUS", "READ_COUNTRY_INFO", "READ_CURRENT_CHANNEL",
+            "READ_INPUT_DEVICE_LIST", "READ_INSTALLED_APPS", "READ_LGE_SDX", "READ_LGE_TV_INPUT_EVENTS",
+            "READ_NETWORK_STATE", "READ_NOTIFICATIONS", "READ_POWER_STATE", "READ_RUNNING_APPS",
+            "READ_SETTINGS", "READ_TV_CHANNEL_LIST", "READ_TV_CURRENT_TIME", "READ_UPDATE_INFO",
+            "SEARCH", "TEST_OPEN", "TEST_PROTECTED", "TEST_SECURE", "UPDATE_FROM_REMOTE_APP",
+            "WRITE_NOTIFICATION_ALERT", "WRITE_NOTIFICATION_TOAST", "WRITE_SETTINGS"
+        ]
+    }
+}
+
+# Eski TV'ler için imzalı izin bildirimi — yalnızca yeni yöntem başarısız olursa denenir.
 # (PyWebOSTV / LGWebOSRemote ile aynı, MIT lisanslı kaynaklardan).
 LG_IMZA = ("eyJhbGdvcml0aG0iOiJSU0EtU0hBMjU2Iiwia2V5SWQiOiJ0ZXN0LXNpZ25pbm"
            "ctY2VydCIsInNpZ25hdHVyZVZlcnNpb24iOjF9.hrVRgjCwXVvE2OOSpDZ58hR"
@@ -343,10 +366,23 @@ class LGTV:
                 return
             self.ws = ws
             threading.Thread(target=self._dinle, args=(ws,), daemon=True).start()
-            kayit = dict(LG_KAYIT)
-            if self.anahtar:
-                kayit['client-key'] = self.anahtar
-            cevap = self._istek_bekle('register', None, kayit, sure=90, kayit=True)
+            # Yeni webOS sürümleri eşleşmeden önce "hello" ve sistem bilgisi istiyor.
+            self._istek_bekle('hello', None, {}, sure=4, kayit=True, mid='hello')
+            self._istek_bekle('request', 'ssap://system/getSystemInfo', {}, sure=4, kayit=True)
+            cevap = None
+            for sablon in (LG_KAYIT_YENI, LG_KAYIT):
+                kayit = dict(sablon)
+                if self.anahtar:
+                    kayit['client-key'] = self.anahtar
+                cevap = self._istek_bekle('register', None, kayit, sure=90, kayit=True)
+                if cevap and cevap.get('type') == 'registered':
+                    break
+                # Süre dolduysa, kullanıcı TV'de reddettiyse ya da bağlantı koptuysa
+                # eski yöntemle bir daha izin isteme.
+                hata = str((cevap or {}).get('error', '')).lower()
+                kullanici_reddetti = 'denied' in hata or 'cancel' in hata or 'user' in hata
+                if cevap is None or kullanici_reddetti or self.ws is not ws or not ws.acik:
+                    break
             if cevap and cevap.get('type') == 'registered':
                 yeni = cevap.get('payload', {}).get('client-key')
                 if yeni and yeni != self.anahtar:
@@ -377,7 +413,7 @@ class LGTV:
                 self.durum = 'onay'
                 self.mesaj = 'TV ekranındaki izin isteğini TV kumandasıyla kabul et'
                 continue
-            b = self.bekleyen.get(o.get('id'))
+            b = self.bekleyen.get(o.get('id')) or (self.bekleyen.get('hello') if o.get('type') == 'hello' else None)
             if b:
                 b[1].append(o)
                 b[0].set()
@@ -392,11 +428,11 @@ class LGTV:
             self.sayac += 1
             return 'k%d' % self.sayac
 
-    def _istek_bekle(self, tip, uri, yuk, sure=5, kayit=False):
+    def _istek_bekle(self, tip, uri, yuk, sure=5, kayit=False, mid=None):
         ws = self.ws
         if ws is None or (not kayit and self.durum != 'bagli'):
             return None
-        mid = self._yeni_id()
+        mid = mid or self._yeni_id()
         olay, kutu = threading.Event(), []
         self.bekleyen[mid] = (olay, kutu)
         try:
@@ -409,7 +445,7 @@ class LGTV:
             if not olay.wait(sure):
                 return None
             # register akışında araya 'response' girebilir; 'registered' ya da 'error' bekle
-            if kayit:
+            if tip == 'register':
                 bitis = time.time() + sure
                 while kutu and kutu[-1].get('type') not in ('registered', 'error') and time.time() < bitis:
                     olay.clear()
