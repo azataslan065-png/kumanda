@@ -225,6 +225,9 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 <div class="yazi"><input id="metin" placeholder="Ekrana yazı gönder…" autocomplete="off"><button class="b" id="gonder">Gönder</button></div>
 <div class="yazi"><button class="b" data-t="SIL" style="flex:1">⌫ Sil</button><button class="b" data-t="ENTER" style="flex:1">↵ Enter</button></div>
 <p class="not" id="yaziNot"></p>
+<div class="baslik" style="margin-top:18px" data-yalniz="lg">Bağlantı aç</div>
+<div class="yazi" data-yalniz="lg"><input id="baglanti" type="url" inputmode="url" placeholder="YouTube ya da web bağlantısı yapıştır" autocomplete="off"><button class="b" id="baglantiAc">Aç</button></div>
+<p class="not" data-yalniz="lg">YouTube bağlantıları TV'deki YouTube'da, diğerleri TV tarayıcısında açılır. Telefondaki YouTube'da <b>Paylaş → Kumanda</b> de, video doğrudan TV'de açılsın.</p>
 </section>
 
 <section id="ped" class="gizli">
@@ -416,7 +419,7 @@ function yaziNotGuncelle(){
   if(c.yazi_izni===false){ n.textContent='⚠ TV yazı gönderme iznini vermiyor. TV\'nin ekran klavyesini Dokunmatik sekmesinden kullanabilirsin.'; n.style.color='#ffb3bb'; return; }
   if(c.klavye===true){ n.textContent='✓ TV\'de yazı kutusu açık, yazdığın oraya gider.'; n.style.color='#8fe3a8'; return; }
   if(c.klavye===false){ n.textContent='TV\'de önce bir yazı kutusu seç (ör. YouTube arama), sonra gönder.'; return; }
-  n.textContent='TV\'de bir yazı kutusu seçiliyken çalışır (ör. YouTube arama).';
+  n.textContent='LG\'nin kendi yazı kutularında çalışır (tarayıcı, LG arama, ayarlar). YouTube ve Netflix kendi klavyesini kullanır; YouTube için aşağıdaki Bağlantı aç\'ı kullan.';
 }
 $('#gonder').onclick=yaziGonder;
 $('#metin').addEventListener('keydown',e=>{if(e.key==='Enter')yaziGonder()});
@@ -466,6 +469,8 @@ function arayuz(){
   $$('[data-yalniz]').forEach(el=>el.classList.toggle('gizli',el.dataset.yalniz!==tur));
   $('.medya5').style.gridTemplateColumns = tur==='lg' ? 'repeat(5,1fr)' : 'repeat(4,1fr)';
   if(tur==='lg' && c && c.durum==='bagli' && uygCihaz!==c.id) uygulamalariYukle();
+  if(PAYLASILAN && !arayuz.paylasimYapildi && tur==='lg' && c && c.durum==='bagli'){ arayuz.paylasimYapildi=true; baglantiAc(PAYLASILAN); }
+  else if(PAYLASILAN && !arayuz.paylasimYapildi && !arayuz.paylasimBildirildi){ arayuz.paylasimBildirildi=true; bildir('TV\'ye bağlanınca paylaşılan video açılacak'); }
   if(ACILIS==='kanallar' && !arayuz.kisayolYapildi && tur==='lg' && c && c.durum==='bagli'){ arayuz.kisayolYapildi=true; try{ history.replaceState(null,'',location.pathname); }catch(e){} kanalPanelAc(); }
   uygulamalariCiz();
   const kurulumGerek = kopruVar===true && !cihazlar.length;
@@ -785,6 +790,21 @@ window.addEventListener('appinstalled',()=>{ yuklemeIstegi=null; $('#yukleBolum'
 const UYGULAMA_MODU = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 // Ana ekran kısayolu: ?ac=kanallar
 const ACILIS = new URLSearchParams(location.search).get('ac');
+
+// ── bağlantı aç / paylaş ──
+function ilkBaglanti(s){ const m=String(s||'').match(/https?:\/\/[^\s"'<>]+/i); return m?m[0].replace(/[),.;!?]+$/,''):''; }
+async function baglantiAc(url){
+  url=ilkBaglanti(url); if(!url){ bildir('Geçerli bir bağlantı bulunamadı'); return false; }
+  if(!secili || aktif()?.tur!=='lg'){ bildir('Önce LG TV\'yi seç'); return false; }
+  titre(); const r=await post('/ac',{c:secili,url});
+  if(r.ok){ bildir(/youtu\.?be/i.test(url)?'Video TV\'deki YouTube\'da açılıyor':'Bağlantı TV tarayıcısında açılıyor'); $('#baglanti').value=''; return true; }
+  sonuc(r); if(!r.hata&&!r.mesaj) bildir('Bağlantı açılamadı'); return false;
+}
+$('#baglantiAc').onclick=()=>baglantiAc($('#baglanti').value);
+$('#baglanti').addEventListener('keydown',e=>{ if(e.key==='Enter') baglantiAc($('#baglanti').value); });
+// Android "Paylaş → Kumanda" (manifest share_target): ?adres=…&metin=…
+const PAYLASILAN = (()=>{ const q=new URLSearchParams(location.search); return ilkBaglanti(q.get('adres')||'')||ilkBaglanti(q.get('metin')||'')||ilkBaglanti(q.get('baslik')||''); })();
+if(PAYLASILAN){ try{ history.replaceState(null,'',location.pathname); }catch(e){} }
 
 // Köprüye ulaşılamıyorken internetten açılan sayfada sık deneme Chrome'un izin penceresini
 // tekrar tekrar açabileceği için aralık uzatılır.

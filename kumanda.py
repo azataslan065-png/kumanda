@@ -331,6 +331,29 @@ LG_TUS = {
 for _r in '0123456789':
     LG_TUS[_r] = [('b', _r)]
 
+# Kendi ekran klavyesini kullanan uygulamalar: LG'nin yazı komutu (ime/insertText) bunlara ulaşmaz,
+# TV "tamam" dese bile yazı ekrana düşmez.
+KENDI_KLAVYELI = {'youtube.leanback.v4': 'YouTube', 'netflix': 'Netflix', 'amazon': 'Prime Video',
+                  'com.disney.disneyplus-prod': 'Disney+', 'spotify-beehive': 'Spotify', 'tr.com.exxen': 'Exxen',
+                  'com.apple.appletv': 'Apple TV', 'tabii': 'tabii', 'com.blutv.webos': 'BluTV'}
+
+def youtube_kimligi(url):
+    u = urlparse(str(url).strip())
+    if not u.hostname:
+        return None
+    host = u.hostname.lower()
+    if host.endswith('youtu.be'):
+        vid = u.path.strip('/').split('/')[0]
+    elif host.endswith('youtube.com'):
+        q = parse_qs(u.query)
+        vid = (q.get('v') or [''])[0]
+        if not vid:
+            m = re.match(r'^/(?:shorts|live|embed|v)/([^/?#]+)', u.path)
+            vid = m.group(1) if m else ''
+    else:
+        return None
+    return vid if re.match(r'^[A-Za-z0-9_-]{6,20}$', vid or '') else None
+
 IKON_BELLEK = {}
 IKON_KLASORU = os.path.expanduser('~/.kumanda_ikonlar')
 
@@ -592,12 +615,23 @@ class LGTV:
             self.baglan_arkada()
             self.kaydet_sonuc('YAZI', False, '', 'TV bağlı değil')
             return False
+        onde = self.on_plan()
+        if onde in KENDI_KLAVYELI:
+            ad = KENDI_KLAVYELI[onde]
+            ek = (' YouTube videosu için bağlantıyı aşağıdaki "Bağlantı aç" kutusuna yapıştır ya da telefondaki '
+                  'YouTube uygulamasında Paylaş → Kumanda de.') if onde == 'youtube.leanback.v4' else \
+                 ' Yazıyı TV\'deki ekran klavyesinden ok tuşları ya da Dokunmatik sekmesiyle gir.'
+            self.kaydet_sonuc('YAZI', False, '', '%s kendi ekran klavyesini kullanıyor, kumandadan yazı kabul etmiyor.%s' % (ad, ek))
+            return False
         c = self.istek('ssap://com.webos.service.ime/insertText', {'text': metin, 'replace': 0})
         ok = self.basarili(c)
-        if ok:
+        if ok and self.klavye is not False:
             self.yazi_izni = True
-            self.kaydet_sonuc('YAZI', True, 'ime/insertText')
+            self.kaydet_sonuc('YAZI', True, 'ime/insertText' + (' (' + onde + ')' if onde else ''))
             return True
+        if ok:   # TV kabul etti ama açık bir yazı kutusu yok: yazı bir yere düşmez
+            self.kaydet_sonuc('YAZI', False, '', 'TV\'de seçili bir yazı kutusu yok, yazı ekrana düşmedi. Önce TV\'de yazı kutusunu seç (OK).')
+            return False
         ham = str((c or {}).get('error') or ((c or {}).get('payload') or {}).get('errorText') or '')
         if '401' in ham or 'permission' in ham.lower() or 'denied' in ham.lower():
             self.yazi_izni = False
@@ -629,7 +663,26 @@ class LGTV:
         return ok
 
     def adres_ac(self, url):
-        return self.basarili(self.istek('ssap://system.launcher/open', {'target': url}))
+        """Bağlantıyı TV'de açar. YouTube bağlantıları TV'deki YouTube uygulamasında açılır."""
+        vid = youtube_kimligi(url)
+        if vid:
+            c = self.istek('ssap://system.launcher/launch',
+                           {'id': 'youtube.leanback.v4', 'params': {'contentTarget': 'https://www.youtube.com/tv?v=' + vid}})
+            if not self.basarili(c):   # eski yöntem
+                c = self.istek('ssap://system.launcher/launch', {'id': 'youtube.leanback.v4', 'contentId': vid})
+            ok = self.basarili(c)
+            self.kaydet_sonuc('ADRES', ok, 'YouTube ' + vid if ok else '', '' if ok else ((c or {}).get('error') or 'YouTube açılamadı'))
+            return ok
+        c = self.istek('ssap://system.launcher/open', {'target': url})
+        ok = self.basarili(c)
+        self.kaydet_sonuc('ADRES', ok, 'tarayıcı' if ok else '', '' if ok else ((c or {}).get('error') or 'açılamadı'))
+        return ok
+
+    def on_plan(self):
+        """TV'de şu an önde olan uygulama (izin verilmezse boş)."""
+        p = (self.istek('ssap://com.webos.applicationManager/getForegroundAppInfo', sure=3) or {}).get('payload') or {}
+        return p.get('appId') or ''
+
 
     def girisler(self):
         c = self.istek('ssap://tv/getExternalInputList')
@@ -1265,7 +1318,7 @@ class H(BaseHTTPRequestHandler):
         elif not self.izinli(q):
             self.yanit(403, {'ok': False, 'hata': 'anahtar'})
         elif yol.path == '/durum':
-            d = {'surum': 7, 'adb': ADB_VAR,
+            d = {'surum': 8, 'adb': ADB_VAR,
                  'cihazlar': [c.ozet() for c in list(CIHAZLAR.values())],
                  'ayar': {'projeksiyon': (AYAR.get('projeksiyon') or {}).get('adres', ''),
                           'tv': (AYAR.get('tv') or {}).get('adres', ''),
@@ -1374,7 +1427,7 @@ class H(BaseHTTPRequestHandler):
             return
         neden = ''
         if not ok:
-            anahtar = {'/yazi': 'YAZI', '/tus': v.get('t', ''), '/uygulama': 'UYG:' + v.get('id', '')}.get(self.path)
+            anahtar = {'/yazi': 'YAZI', '/tus': v.get('t', ''), '/uygulama': 'UYG:' + v.get('id', ''), '/ac': 'ADRES'}.get(self.path)
             neden = ((getattr(c, 'sonuclar', {}) or {}).get(anahtar) or {}).get('hata', '') if anahtar else ''
         self.yanit(200, {'ok': bool(ok), 'durum': c.durum, 'mesaj': c.mesaj, 'hata': neden})
 
