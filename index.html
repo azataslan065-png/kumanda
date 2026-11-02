@@ -287,6 +287,7 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
       <label>Köprü adresi</label><input id="sunucuGir" inputmode="url" autocomplete="off">
       <small>Termux'taki köprü. Değiştirmen gerekmez.</small>
     </div>
+    <p class="not" id="surumYazi" style="text-align:center;margin:4px 0 10px"></p>
     <div class="satir"><button class="b" id="kapatBtn">Kapat</button></div>
   </div>
 </div>
@@ -341,6 +342,7 @@ function yaz(k,v){try{localStorage.setItem('kmd_'+k,v)}catch(e){}}
   try{ const b=JSON.parse(decodeURIComponent(m[1])); if(b.s&&b.k){ yaz('sunucu',b.s); yaz('anahtar',b.k); yaz('yeni_baglandi','1'); } }catch(e){}
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
+const SAYFA_SURUMU='2026-11-02-B';
 const GUNCELLE_KOMUTU='curl -L --remote-name-all https://raw.githubusercontent.com/azataslan065-png/kumanda/main/{kumanda.py,index.html,manifest.webmanifest,sw.js,ikon-192.png,ikon-512.png,ikon-maskable-512.png} && python kumanda.py';
 const YEREL_SAYFA = location.protocol==='http:' && location.port==='8080';
 let SUNUCU = YEREL_SAYFA ? location.origin
@@ -529,6 +531,7 @@ function ayarAc(){
   $('#tvAdres').value=ayarlar.tv||''; $('#tvMac').value=ayarlar.mac||''; $('#projAdres').value=ayarlar.projeksiyon||'';
   $('#sunucuGir').value=SUNUCU; $('#tvBulunan').innerHTML=''; $('#projBulunan').innerHTML='';
   $('#githubBolum').classList.toggle('gizli', !(YEREL_SAYFA && githubBilgi));
+  $('#surumYazi').textContent='Kumanda sürümü '+SAYFA_SURUMU+(kopruSurum?' · köprü '+kopruSurum:'');
   $('#taniBolum').classList.toggle('gizli', !aktif()); taniBilgiYaz();
   $('#ayar').classList.remove('gizli');
 }
@@ -782,7 +785,9 @@ $('#taniPerde').addEventListener('click',e=>{ if(e.target.id==='taniPerde') $('#
 
 // ── uygulama olarak yükleme (PWA) ──
 if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='127.0.0.1' || location.hostname==='localhost')){
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  const ilkKontrol = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(ilkKontrol && !sessionStorage.getItem('kmd_yenilendi')){ try{sessionStorage.setItem('kmd_yenilendi','1');}catch(e){} location.reload(); } });
 }
 let yuklemeIstegi=null;
 window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); yuklemeIstegi=e; $('#yukleBolum')?.classList.remove('gizli'); });
