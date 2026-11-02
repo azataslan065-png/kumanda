@@ -4,6 +4,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#0d0f14">
 <title>Kumanda</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="ikon-192.png">
+<link rel="apple-touch-icon" href="ikon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kumanda">
 <style>
 :root{--bg:#0d0f14;--kart:#171a22;--tus:#222634;--tus2:#2c3142;--yazi:#e8ebf2;--soluk:#8a90a2;--vurgu:#4f8cff;--kirmizi:#ff4d5e;--yesil:#2ecc71;--sari:#ffc94d}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
@@ -86,6 +92,21 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 .panel .ana{background:var(--vurgu)}
 .ayrac{height:1px;background:var(--tus2);margin:16px 0}
 /* kanal listesi */
+.orta3{display:grid;grid-template-rows:repeat(3,1fr);gap:10px}
+.orta3 .b{flex-direction:row;font-size:14px}
+.orta3 .r123{font-weight:800;letter-spacing:.5px}
+.medya5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.medya5 .b{min-height:50px}
+.ekler{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.ekler .b{flex-direction:column;gap:4px;min-height:62px;font-size:12px;font-weight:600;padding:6px 2px}
+.ekler .b svg{width:21px;height:21px}
+.ust .b{flex-direction:column;gap:3px;font-size:12px;min-height:58px}
+.ust .guc span{display:none}
+.uclu .b span,.ekler .b span{white-space:nowrap}
+.baslik{display:flex;align-items:center;justify-content:space-between}
+.baslik .tumu{background:none;border:0;color:var(--vurgu);font-size:13px;font-weight:700;text-transform:none;letter-spacing:0;padding:4px 2px}
+.uyg .b img{width:30px;height:30px;object-fit:contain;border-radius:7px}
+.uyg .b .uad{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
 .kanalBtn{width:100%;margin-bottom:16px;min-height:56px;font-size:16px;background:linear-gradient(90deg,#1c2a4a,var(--tus))}
 .kanalPanel{position:fixed;inset:0;background:var(--bg);z-index:25;display:flex;flex-direction:column}
 .kp-ust{padding:calc(12px + env(safe-area-inset-top)) 16px 10px;background:var(--bg);border-bottom:1px solid var(--tus2)}
@@ -145,6 +166,15 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 .as-p .cubuk{display:block;height:3px;border-radius:2px;background:#2a3042;margin-top:6px;overflow:hidden}
 .as-p .cubuk i{display:block;height:100%;background:var(--vurgu)}
 .kp-bos{color:var(--soluk);text-align:center;padding:40px 20px;line-height:1.6;font-size:14px}
+.uyg.tum{grid-template-columns:repeat(3,1fr);padding:6px 8px}
+.tani-bilgi{font-size:13px;color:var(--yazi);line-height:1.6;background:var(--bg);border-radius:10px;padding:8px 11px}
+.tani-bilgi span{color:var(--soluk)}
+.tani-s{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;font-size:14px}
+.tani-s b{flex:1;font-weight:600}
+.tani-s small{color:var(--soluk);font-size:12px;max-width:52%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tani-s .i{width:22px;text-align:center;font-weight:800}
+.tani-s.ok .i{color:var(--yesil)} .tani-s.hata .i{color:var(--kirmizi)} .tani-s.yok .i{color:var(--soluk)}
+.tani-s.hata{background:#2a161b}
 .kp-bos b{color:var(--yazi)}
 .bildirim{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#262c3c;padding:10px 16px;border-radius:12px;font-size:14px;z-index:30;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
 .bildirim.var{opacity:1}
@@ -161,12 +191,8 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 <div class="sekmeler"><button class="aktif" data-s="kumanda">Kumanda</button><button data-s="ped">Dokunmatik</button></div>
 
 <section id="kumanda">
-<div class="ust">
-  <button class="b guc" data-t="GUC" aria-label="Güç"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></button>
-  <button class="b" data-t="AYARLAR" aria-label="Ayarlar"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
-  <button class="b" data-t="SESSIZ" aria-label="Sessiz"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m23 9-6 6M17 9l6 6"/></svg></button>
-</div>
-
+<div class="ust"><button class="b guc" data-t="GUC" aria-label="Güç"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></button><button class="b" id="kaynakBtn" data-yalniz="lg" aria-label="Kaynak"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M12 9v8M9 12l3-3 3 3M8 21h8"/></svg><span>Kaynak</span></button><button class="b" data-t="KAYNAK" data-yalniz="adb"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M12 9v8M9 12l3-3 3 3M8 21h8"/></svg><span>Kaynak</span></button><button class="b" data-t="AYARLAR"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg><span>Ayarlar</span></button></div>
+<div class="girisler gizli" id="girisler"></div>
 <div class="dpad">
   <button class="b y" data-t="YUKARI" data-tekrar aria-label="Yukarı"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
   <button class="b s" data-t="SOL" data-tekrar aria-label="Sol"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
@@ -174,63 +200,25 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
   <button class="b sg" data-t="SAG" data-tekrar aria-label="Sağ"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
   <button class="b a" data-t="ASAGI" data-tekrar aria-label="Aşağı"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
 </div>
-
-<div class="uclu">
-  <button class="b" data-t="GERI"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Geri</button>
-  <button class="b" data-t="ANA"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Ana</button>
-  <button class="b" data-t="MENU" data-yalniz="adb"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Menü</button>
-  <button class="b" data-t="CIKIS" data-yalniz="lg"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>Çıkış</button>
-</div>
-
-<div class="alt">
-  <div class="dikey">
-    <button class="b" data-t="SES+" data-tekrar aria-label="Ses aç"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-    <small>SES</small>
-    <button class="b" data-t="SES-" data-tekrar aria-label="Ses kıs"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
-  </div>
-  <div class="medya" id="medya">
-    <button class="b" data-t="GERI_SAR" aria-label="Geri sar"><svg viewBox="0 0 24 24"><path d="M11 19 2 12l9-7zM22 19l-9-7 9-7z"/></svg></button>
-    <button class="b" data-t="OYNAT_DURAKLAT" data-yalniz="adb" aria-label="Oynat/Duraklat"><svg viewBox="0 0 24 24"><path d="M5 4l9 8-9 8z"/><path d="M17 5v14M21 5v14"/></svg></button>
-    <button class="b" data-t="OYNAT" data-yalniz="lg" aria-label="Oynat"><svg viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></button>
-    <button class="b" data-t="DURAKLAT" data-yalniz="lg" aria-label="Duraklat"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button>
-    <button class="b" data-t="ILERI_SAR" aria-label="İleri sar"><svg viewBox="0 0 24 24"><path d="m13 19 9-7-9-7zM2 19l9-7-9-7z"/></svg></button>
-    <button class="b genis" data-t="SON" data-yalniz="adb"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Son uygulamalar</button>
-    <button class="b genis" id="rakamBtn" data-yalniz="lg">123 · Rakamlar</button>
-  </div>
-  <div class="dikey">
-    <button class="b" data-t="KANAL+" data-tekrar>CH+</button>
-    <small>KANAL</small>
-    <button class="b" data-t="KANAL-" data-tekrar>CH−</button>
-  </div>
-</div>
-
+<div class="uclu"><button class="b" data-t="GERI"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg><span>Geri</span></button><button class="b" data-t="ANA"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Ana</span></button><button class="b" data-t="CIKIS" data-yalniz="lg"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Çıkış</span></button><button class="b" data-t="MENU" data-yalniz="adb"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menü</span></button></div>
+<div class="alt"><div class="dikey"><button class="b" data-t="SES+" data-tekrar aria-label="Ses aç"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><small>SES</small><button class="b" data-t="SES-" data-tekrar aria-label="Ses kıs"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button></div><div class="orta3"><button class="b" data-t="SESSIZ"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m23 9-6 6M17 9l6 6"/></svg><span>Sessiz</span></button><button class="b" id="rakamBtn"><span class="r123">123</span><span>Rakamlar</span></button><button class="b" data-t="BILGI"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg><span>Bilgi</span></button></div><div class="dikey"><button class="b" data-t="KANAL+" data-tekrar><span>CH+</span></button><small>KANAL</small><button class="b" data-t="KANAL-" data-tekrar><span>CH−</span></button></div></div>
 <div class="rakam gizli" id="rakam">
   <button class="b" data-t="1">1</button><button class="b" data-t="2">2</button><button class="b" data-t="3">3</button>
   <button class="b" data-t="4">4</button><button class="b" data-t="5">5</button><button class="b" data-t="6">6</button>
   <button class="b" data-t="7">7</button><button class="b" data-t="8">8</button><button class="b" data-t="9">9</button>
-  <button class="b" data-t="BILGI">Bilgi</button><button class="b" data-t="0">0</button><button class="b" data-t="TAMAM">OK</button>
+  <button class="b" data-t="YILDIZ" data-yalniz="lg">✱</button><button class="b" data-t="0">0</button><button class="b" data-t="TAMAM">OK</button>
 </div>
-
+<div class="medya5"><button class="b" data-t="GERI_SAR" aria-label="Geri sar"><svg viewBox="0 0 24 24"><path d="M11 19 2 12l9-7zM22 19l-9-7 9-7z"/></svg></button><button class="b" data-t="OYNAT" data-yalniz="lg" aria-label="Oynat"><svg viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></button><button class="b" data-t="DURAKLAT" data-yalniz="lg" aria-label="Duraklat"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button><button class="b" data-t="OYNAT_DURAKLAT" data-yalniz="adb" aria-label="Oynat/Duraklat"><svg viewBox="0 0 24 24"><path d="M5 4l9 8-9 8z"/><path d="M17 5v14M21 5v14"/></svg></button><button class="b" data-t="DURDUR" aria-label="Durdur"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button><button class="b" data-t="ILERI_SAR" aria-label="İleri sar"><svg viewBox="0 0 24 24"><path d="m13 19 9-7-9-7zM2 19l9-7-9-7z"/></svg></button></div>
 <div class="renkler" data-yalniz="lg">
   <button class="b" data-t="KIRMIZI" style="background:#c62f3a" aria-label="Kırmızı"></button>
   <button class="b" data-t="YESIL" style="background:#2e9a4f" aria-label="Yeşil"></button>
   <button class="b" data-t="SARI" style="background:#d6b02b" aria-label="Sarı"></button>
   <button class="b" data-t="MAVI" style="background:#2f62c6" aria-label="Mavi"></button>
 </div>
-
+<div class="ekler"><button class="b" data-t="REHBER"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg><span>Rehber</span></button><button class="b" data-t="SON"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Son</span></button><button class="b" data-t="ALTYAZI"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 15h4M13 15h4M7 11h10"/></svg><span>Altyazı</span></button><button class="b" data-t="SES_DILI"><svg viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c1 4 4 7 7 8M11 5c-1 4-4 7-7 8"/><path d="m13 21 4-9 4 9M14.5 18h5"/></svg><span>Ses dili</span></button><button class="b" data-t="ORAN" data-yalniz="lg"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9v-1h3M18 15v1h-3"/></svg><span>Oran</span></button><button class="b" data-t="LISTE" data-yalniz="lg"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>TV listesi</span></button><button class="b" data-t="CANLI"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M9 2l3 3 3-3"/></svg><span>Canlı yayın</span></button><button class="b" data-t="UYGULAMALAR"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><circle cx="17.5" cy="17.5" r="3.5"/></svg><span>Uygulamalar</span></button></div>
 <button class="b kanalBtn" id="kanallarBtn" data-yalniz="lg"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M9 2l3 3 3-3"/></svg>Kanal listesi</button>
-
-<div class="baslik">Uygulamalar</div>
-<div class="uyg" id="uyg">
-  <button class="b" data-ac="canli"><i>📡</i>Canlı TV</button>
-  <button class="b" data-uyg="youtube.leanback.v4" data-yalniz="lg"><i>▶</i>YouTube</button>
-  <button class="b" data-uyg="netflix" data-yalniz="lg"><i>N</i>Netflix</button>
-  <button class="b" data-uyg="com.webos.app.livetv" data-yalniz="lg"><i>📺</i>TV yayını</button>
-  <button class="b" data-uyg="com.disney.disneyplus-prod" data-yalniz="lg"><i>✦</i>Disney+</button>
-  <button class="b" id="kaynakBtn" data-yalniz="lg"><i>⇄</i>Kaynak</button>
-</div>
-<div class="girisler gizli" id="girisler"></div>
-
+<div class="baslik">Uygulamalar <button class="tumu" id="tumUygBtn" data-yalniz="lg">Tümü ›</button></div>
+<div class="uyg" id="uyg"><button class="b" data-ac="canli"><i>📡</i><span class="uad">Web TV</span></button></div>
 <div class="yazi"><input id="metin" placeholder="Ekrana yazı gönder…" autocomplete="off"><button class="b" id="gonder">Gönder</button></div>
 <div class="yazi"><button class="b" data-t="SIL" style="flex:1">⌫ Sil</button><button class="b" data-t="ENTER" style="flex:1">↵ Enter</button></div>
 <p class="not" id="yaziNot"></p>
@@ -270,6 +258,16 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
       <div class="bulunan" id="projBulunan"></div>
     </div>
     <div class="satir"><button class="b" id="taraBtn">🔍 Ağda ara</button><button class="b ana" id="kaydetBtn">Kaydet ve bağlan</button></div>
+    <div id="yukleBolum" class="gizli">
+      <div class="ayrac"></div>
+      <div class="alan" style="margin-bottom:6px"><label>📲 Uygulama olarak yükle</label><small style="margin-top:0">Ana ekrana ve uygulama listesine Kumanda simgesi eklenir, tam ekran açılır.</small></div>
+      <div class="satir"><button class="b ana" id="yukleBtn">Yükle</button></div>
+    </div>
+    <div id="taniBolum" class="gizli">
+      <div class="ayrac"></div>
+      <div class="alan" style="margin-bottom:6px"><label>🩺 TV bilgisi ve tuş testi</label><div id="taniBilgi" class="tani-bilgi"></div></div>
+      <div class="satir"><button class="b" id="taniBtn">Tuş testini aç</button></div>
+    </div>
     <div id="githubBolum" class="gizli">
       <div class="ayrac"></div>
       <div class="alan" style="margin-bottom:6px">
@@ -311,6 +309,19 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
     <div class="as-liste" id="asListe"></div>
   </div>
 </div>
+<div class="akisPerde gizli" id="uygPerde">
+  <div class="akisSayfa">
+    <div class="as-bas"><h3>Uygulamalar<small id="uygSayi"></small></h3><button class="kp-ikon" id="uygKapat" aria-label="Kapat">✕</button></div>
+    <div style="padding:10px 16px 4px"><div class="kp-ara"><svg class="buyutec" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="uygAra" type="search" placeholder="Uygulama ara…" autocomplete="off"></div></div>
+    <div class="as-liste"><div class="uyg tum" id="uygTum"></div></div>
+  </div>
+</div>
+<div class="akisPerde gizli" id="taniPerde">
+  <div class="akisSayfa">
+    <div class="as-bas"><h3>Tuş testi<small id="taniAlt"></small></h3><button class="kp-ikon" id="taniYenile" aria-label="Yenile">↻</button><button class="kp-ikon" id="taniKapat" aria-label="Kapat">✕</button></div>
+    <div class="as-liste" id="taniListe"></div>
+  </div>
+</div>
 <div class="bildirim" id="bildirim"></div>
 
 <script>
@@ -324,6 +335,7 @@ function yaz(k,v){try{localStorage.setItem('kmd_'+k,v)}catch(e){}}
   try{ const b=JSON.parse(decodeURIComponent(m[1])); if(b.s&&b.k){ yaz('sunucu',b.s); yaz('anahtar',b.k); yaz('yeni_baglandi','1'); } }catch(e){}
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
+const GUNCELLE_KOMUTU='curl -L --remote-name-all https://raw.githubusercontent.com/azataslan065-png/kumanda/main/{kumanda.py,index.html,manifest.webmanifest,sw.js,ikon-192.png,ikon-512.png,ikon-maskable-512.png} && python kumanda.py';
 const YEREL_SAYFA = location.protocol==='http:' && location.port==='8080';
 let SUNUCU = YEREL_SAYFA ? location.origin
   : (oku('sunucu',null) || (()=>{try{return localStorage.getItem('hy350_sunucu')}catch(e){return null}})() || 'http://127.0.0.1:8080');
@@ -370,7 +382,7 @@ $$('[data-t]').forEach(b=>{
   b.addEventListener('contextmenu',e=>e.preventDefault());
 });
 $$('[data-uyg]').forEach(b=>b.onclick=()=>{titre();post('/uygulama',{c:secili,id:b.dataset.uyg}).then(r=>{sonuc(r); if(r.ok) bildir(b.textContent.trim()+' açılıyor')})});
-$$('[data-ac]').forEach(b=>b.onclick=()=>{titre();post('/ac',{c:secili,url:CANLI_TV}).then(r=>{sonuc(r); if(r.ok) bildir('Canlı TV açılıyor')})});
+$$('[data-ac]').forEach(b=>b.onclick=()=>{titre();post('/ac',{c:secili,url:CANLI_TV}).then(r=>{sonuc(r); if(r.ok) bildir('Web TV açılıyor')})});
 $$('[data-teker]').forEach(b=>b.onclick=()=>{titre();post('/teker',{c:secili,dx:0,dy:b.dataset.teker*4})});
 $('#rakamBtn').onclick=()=>{titre();$('#rakam').classList.toggle('gizli')};
 $('#kaynakBtn').onclick=async()=>{
@@ -378,7 +390,7 @@ $('#kaynakBtn').onclick=async()=>{
   if(!k.classList.contains('gizli')){k.classList.add('gizli');return}
   k.innerHTML='<span class="not">Yükleniyor…</span>'; k.classList.remove('gizli');
   try{ const r=await getj('/girisler?c='+encodeURIComponent(secili)); k.innerHTML='';
-    if(!r.girisler.length){k.innerHTML='<span class="not">Giriş listesi alınamadı. TV bağlı mı?</span>';return}
+    if(!r.girisler.length){ k.classList.add('gizli'); tus('KAYNAK'); bildir('TV\'de kaynak menüsü açıldı'); return; }
     r.girisler.forEach(g=>{const b=document.createElement('button');b.className='b'+(g.bagli?'':' yok');b.textContent=g.ad;
       b.onclick=()=>{titre();post('/giris',{c:secili,id:g.id}).then(x=>{sonuc(x); if(x.ok){bildir(g.ad+' seçildi');k.classList.add('gizli')}})};k.appendChild(b)});
   }catch(e){k.innerHTML='<span class="not">Köprüye ulaşılamadı.</span>'}
@@ -431,7 +443,10 @@ function arayuz(){
   if(!aktif() && cihazlar.length) { secili=cihazlar[0].id; yaz('secili',secili); }
   const c=aktif(), tur=c?c.tur:'adb';
   $$('[data-yalniz]').forEach(el=>el.classList.toggle('gizli',el.dataset.yalniz!==tur));
-  $('#medya').classList.toggle('dort',tur==='lg');
+  $('.medya5').style.gridTemplateColumns = tur==='lg' ? 'repeat(5,1fr)' : 'repeat(4,1fr)';
+  if(tur==='lg' && c && c.durum==='bagli' && uygCihaz!==c.id) uygulamalariYukle();
+  if(ACILIS==='kanallar' && !arayuz.kisayolYapildi && tur==='lg' && c && c.durum==='bagli'){ arayuz.kisayolYapildi=true; try{ history.replaceState(null,'',location.pathname); }catch(e){} kanalPanelAc(); }
+  uygulamalariCiz();
   const kurulumGerek = kopruVar===true && !cihazlar.length;
   $('#kurulum').classList.toggle('gizli',!kurulumGerek);
   $('#anaPanel').classList.toggle('gizli',kurulumGerek);
@@ -460,8 +475,9 @@ function arayuz(){
     }
     return; }
   if(kopruVar==='eski'){ $('#durumYazi').textContent='Köprü eski';
-    u.className='uyari sari'; u.innerHTML='Termux\'taki köprü eski sürüm. Köprüyü Ctrl+C ile durdurup şunu çalıştır:<br><code>curl -LO https://raw.githubusercontent.com/azataslan065-png/kumanda/main/kumanda.py && curl -LO https://raw.githubusercontent.com/azataslan065-png/kumanda/main/index.html && python kumanda.py</code>'; return; }
+    u.className='uyari sari'; u.innerHTML='Termux\'taki köprü eski sürüm. Köprüyü Ctrl+C ile durdurup şunu çalıştır:<br><code>'+GUNCELLE_KOMUTU+'</code>'; return; }
   if(!c){ $('#durumYazi').textContent='Cihaz yok'; return; }
+  if(kopruSurum && kopruSurum<6){ u.className='uyari sari'; u.innerHTML='<b>Köprü eski sürüm.</b> Tüm tuşların çalışması için Termux\'ta köprüyü Ctrl+C ile durdurup şunu çalıştır:<br><code>'+GUNCELLE_KOMUTU+'</code>'; }
   $('#durumYazi').textContent=AD_DURUM[c.durum]||c.durum;
   if(c.durum==='bagli') d.classList.add('ok'); else if(c.durum==='baglaniyor'||c.durum==='onay') d.classList.add('bekle');
   if(c.durum==='onay'){ u.className='uyari sari'; u.innerHTML='<b>TV ekranına bak.</b> Çıkan izin isteğini TV\'nin kendi kumandasıyla <b>Kabul et</b>. Bu yalnızca ilk seferde sorulur.'; }
@@ -486,6 +502,7 @@ function ayarAc(){
   $('#tvAdres').value=ayarlar.tv||''; $('#tvMac').value=ayarlar.mac||''; $('#projAdres').value=ayarlar.projeksiyon||'';
   $('#sunucuGir').value=SUNUCU; $('#tvBulunan').innerHTML=''; $('#projBulunan').innerHTML='';
   $('#githubBolum').classList.toggle('gizli', !(YEREL_SAYFA && githubBilgi));
+  $('#taniBolum').classList.toggle('gizli', !aktif()); taniBilgiYaz();
   $('#ayar').classList.remove('gizli');
 }
 $('#githubBtn').onclick=()=>{
@@ -651,6 +668,94 @@ $('#kpAra').addEventListener('input',kanallariCiz);
 $('#kpAra').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#kpAra').blur(); const ilk=$('#kpListe .kanal'); if(ilk && $('#kpAra').value.trim()) ilk.click(); } });
 $('#kpTemizle').onclick=()=>{ $('#kpAra').value=''; kanallariCiz(); $('#kpAra').focus(); };
 $$('#kpFiltre button').forEach(b=>b.onclick=()=>{ kpFiltre=b.dataset.f; $$('#kpFiltre button').forEach(x=>x.classList.toggle('aktif',x===b)); kanallariCiz(); });
+
+// ── uygulamalar (TV'de yüklü olanlar) ──
+const POPULER=['netflix','youtube.leanback.v4','amazon','com.disney.disneyplus-prod','com.webos.app.livetv','spotify-beehive','tr.com.exxen','com.blutv.webos','tabii','com.apple.appletv','com.webos.app.browser'];
+const YEDEK_UYG=[{id:'netflix',ad:'Netflix'},{id:'youtube.leanback.v4',ad:'YouTube'},{id:'amazon',ad:'Prime Video'},{id:'com.disney.disneyplus-prod',ad:'Disney+'},{id:'com.webos.app.livetv',ad:'TV yayını'}];
+let uygListe=[], uygCihaz=null;
+try{ uygListe=JSON.parse(oku('uygulamalar','[]'))||[]; }catch(e){ uygListe=[]; }
+function ikonUrl(id){ return SUNUCU+'/ikon?c='+encodeURIComponent(secili)+'&id='+encodeURIComponent(id)+(ANAHTAR?'&k='+encodeURIComponent(ANAHTAR):''); }
+function uygDugme(a){
+  const b=document.createElement('button'); b.className='b'; b.dataset.uygId=a.id;
+  const yedek=()=>{ const i=document.createElement('i'); i.textContent=(a.ad||'?').trim()[0].toUpperCase(); i.style.cssText='width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;background:'+renk(a.ad); return i; };
+  if(a.ikon){ const im=document.createElement('img'); im.alt=''; im.loading='lazy'; im.src=ikonUrl(a.id); im.onerror=()=>im.replaceWith(yedek()); b.appendChild(im); } else b.appendChild(yedek());
+  const s=document.createElement('span'); s.className='uad'; s.textContent=a.ad; b.appendChild(s);
+  b.onclick=()=>{ titre(); post('/uygulama',{c:secili,id:a.id}).then(r=>{ if(r.ok){ bildir(a.ad+' açılıyor'); $('#uygPerde').classList.add('gizli'); } else { sonuc(r); if(!r.mesaj&&!r.hata) bildir(a.ad+' açılamadı (TV\'de yüklü mü?)'); } }); };
+  return b;
+}
+function uygulamalariCiz(){
+  const k=$('#uyg'); if(!k) return; const tur=aktif()?.tur||'adb';
+  [...k.querySelectorAll('[data-uyg-id]')].forEach(x=>x.remove());
+  $('#tumUygBtn').classList.toggle('gizli', tur!=='lg' || !uygListe.length);
+  if(tur!=='lg') return;
+  const kaynak = uygListe.length ? uygListe : YEDEK_UYG;
+  const sirali=[...kaynak].sort((a,b)=>{ const x=POPULER.indexOf(a.id), y=POPULER.indexOf(b.id); return (x<0?99:x)-(y<0?99:y); });
+  sirali.slice(0,8).forEach(a=>k.appendChild(uygDugme(a)));
+}
+async function uygulamalariYukle(yenile){
+  const c=aktif(); if(!c||c.tur!=='lg') return; uygCihaz=c.id;
+  try{ const r=await getj('/uygulamalar?c='+encodeURIComponent(c.id)+(yenile?'&yenile=1':''));
+    if(r.uygulamalar&&r.uygulamalar.length){ uygListe=r.uygulamalar; yaz('uygulamalar',JSON.stringify(uygListe)); }
+  }catch(e){}
+  uygulamalariCiz();
+}
+function tumUygCiz(){
+  const q=sade($('#uygAra').value.trim()), k=$('#uygTum'); k.innerHTML='';
+  const l=uygListe.filter(a=>!q||sade(a.ad).includes(q)).sort((a,b)=>a.ad.localeCompare(b.ad,'tr'));
+  $('#uygSayi').textContent=uygListe.length+' uygulama';
+  l.forEach(a=>k.appendChild(uygDugme(a)));
+  if(!l.length) k.innerHTML='<div class="kp-bos" style="grid-column:1/-1">Uygulama bulunamadı.</div>';
+}
+$('#tumUygBtn').onclick=()=>{ titre(); $('#uygAra').value=''; tumUygCiz(); $('#uygPerde').classList.remove('gizli'); uygulamalariYukle(true).then(()=>{ if(!$('#uygPerde').classList.contains('gizli')) tumUygCiz(); }); };
+$('#uygKapat').onclick=()=>$('#uygPerde').classList.add('gizli');
+$('#uygPerde').addEventListener('click',e=>{ if(e.target.id==='uygPerde') $('#uygPerde').classList.add('gizli'); });
+$('#uygAra').addEventListener('input',tumUygCiz);
+
+// ── TV bilgisi ve tuş testi ──
+const TUS_ADLARI={GUC:'Güç',KAYNAK:'Kaynak',AYARLAR:'Ayarlar',YUKARI:'Yukarı',ASAGI:'Aşağı',SOL:'Sol',SAG:'Sağ',TAMAM:'OK',GERI:'Geri',ANA:'Ana ekran',CIKIS:'Çıkış',MENU:'Menü',
+  'SES+':'Ses +','SES-':'Ses −',SESSIZ:'Sessiz','KANAL+':'Kanal +','KANAL-':'Kanal −',BILGI:'Bilgi',GERI_SAR:'Geri sar',OYNAT:'Oynat',DURAKLAT:'Duraklat',OYNAT_DURAKLAT:'Oynat/Duraklat',
+  DURDUR:'Durdur',ILERI_SAR:'İleri sar',KIRMIZI:'Kırmızı',YESIL:'Yeşil',SARI:'Sarı',MAVI:'Mavi',REHBER:'Rehber',SON:'Son kullanılanlar',ALTYAZI:'Altyazı',SES_DILI:'Ses dili',
+  ORAN:'Görüntü oranı',LISTE:'TV listesi',CANLI:'Canlı yayın',UYGULAMALAR:'Uygulamalar',YILDIZ:'✱',SIL:'Sil',ENTER:'Enter',YAZI:'Yazı gönderme'};
+function taniBilgiYaz(){
+  const c=aktif(), b=(c&&c.bilgi)||{}, k=$('#taniBilgi'); if(!k) return;
+  const satir=(e,v)=>v?'<div><span>'+e+':</span> '+String(v).replace(/[<>&]/g,'')+'</div>':'';
+  k.innerHTML = c ? (satir('Model',b.model||'—')+satir('webOS',b.webos||b.surum)+satir('Ürün',b.urun)+satir('Adres',c.adres)) : '';
+}
+async function taniAc(){
+  $('#taniPerde').classList.remove('gizli'); const k=$('#taniListe'); k.innerHTML='<div class="kp-bos">Yükleniyor…</div>';
+  let r={}; try{ r=await getj('/tani?c='+encodeURIComponent(secili)); }catch(e){ k.innerHTML='<div class="kp-bos">Köprüye ulaşılamadı.</div>'; return; }
+  const s=r.sonuclar||{}, b=r.bilgi||{};
+  $('#taniAlt').textContent=(b.model?b.model+' · ':'')+'Tuşlara bastıkça burada sonuç görünür';
+  const adlar=[...new Set([...(r.tuslar||[]), ...Object.keys(s)])].filter(t=>!/^\d$/.test(t));
+  const sira=a=> (s[a]? (s[a].ok?1:0) : 2);
+  adlar.sort((x,y)=>sira(x)-sira(y) || (TUS_ADLARI[x]||x).localeCompare(TUS_ADLARI[y]||y,'tr'));
+  k.innerHTML='';
+  const rakam=Object.keys(s).filter(t=>/^\d$/.test(t)); if(rakam.length) adlar.push('RAKAMLAR');
+  adlar.forEach(t=>{
+    let v=s[t]; if(t==='RAKAMLAR'){ const l=rakam.map(x=>s[x]); v={ok:l.every(x=>x.ok), yol:'rakam tuşları', hata:(l.find(x=>!x.ok)||{}).hata||''}; }
+    const d=document.createElement('div'); d.className='tani-s '+(v?(v.ok?'ok':'hata'):'yok');
+    const i=document.createElement('span'); i.className='i'; i.textContent=v?(v.ok?'✓':'✗'):'·';
+    const ad=document.createElement('b'); ad.textContent=t.startsWith('UYG:')?('Uygulama: '+((uygListe.find(a=>'UYG:'+a.id===t)||{}).ad||t.slice(4))):(TUS_ADLARI[t]||(t==='RAKAMLAR'?'Rakamlar':t));
+    const ac=document.createElement('small'); ac.textContent=v?(v.ok?v.yol:v.hata):'henüz basılmadı';
+    d.append(i,ad,ac); k.appendChild(d);
+  });
+}
+$('#yukleBtn').onclick=async()=>{ if(!yuklemeIstegi){ bildir('Chrome menüsü ⋮ → "Uygulamayı yükle"'); return; } yuklemeIstegi.prompt(); const s=await yuklemeIstegi.userChoice.catch(()=>null); if(s&&s.outcome==='accepted') $('#yukleBolum').classList.add('gizli'); yuklemeIstegi=null; };
+$('#taniBtn').onclick=()=>{ $('#ayar').classList.add('gizli'); taniAc(); };
+$('#taniYenile').onclick=taniAc;
+$('#taniKapat').onclick=()=>$('#taniPerde').classList.add('gizli');
+$('#taniPerde').addEventListener('click',e=>{ if(e.target.id==='taniPerde') $('#taniPerde').classList.add('gizli'); });
+
+// ── uygulama olarak yükleme (PWA) ──
+if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='127.0.0.1' || location.hostname==='localhost')){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+let yuklemeIstegi=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); yuklemeIstegi=e; $('#yukleBolum')?.classList.remove('gizli'); });
+window.addEventListener('appinstalled',()=>{ yuklemeIstegi=null; $('#yukleBolum')?.classList.add('gizli'); bildir('Kumanda uygulama olarak yüklendi ✓'); });
+const UYGULAMA_MODU = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+// Ana ekran kısayolu: ?ac=kanallar
+const ACILIS = new URLSearchParams(location.search).get('ac');
 
 // Köprüye ulaşılamıyorken internetten açılan sayfada sık deneme Chrome'un izin penceresini
 // tekrar tekrar açabileceği için aralık uzatılır.

@@ -302,22 +302,34 @@ LG_KAYIT = {
     }
 }
 
-# Kumanda tuşu → (yöntem, değer). 'b' = imleç soketi tuşu, 'r' = ssap isteği
+# Kumanda tuşu → sırayla denenecek yollar.
+#   ('b', AD)  : asıl kumandanın kullandığı tuş kanalı (getPointerInputSocket). Yeni webOS'ta da çalışır.
+#   ('r', URI) : uygulama komutu (ssap). Yeni imzasız eşleşmede bazıları reddedilebilir, yedek olarak kalır.
+# Tuş adları Home Assistant'ın aiowebostv/buttons.py listesinden (Ağustos 2026).
 LG_TUS = {
-    'YUKARI': ('b', 'UP'), 'ASAGI': ('b', 'DOWN'), 'SOL': ('b', 'LEFT'), 'SAG': ('b', 'RIGHT'),
-    'TAMAM': ('b', 'ENTER'), 'GERI': ('b', 'BACK'), 'ANA': ('b', 'HOME'), 'CIKIS': ('b', 'EXIT'),
-    'AYARLAR': ('b', 'MENU'), 'BILGI': ('b', 'INFO'), 'SESSIZ': ('b', 'MUTE'),
-    'SES+': ('r', 'ssap://audio/volumeUp'), 'SES-': ('r', 'ssap://audio/volumeDown'),
-    'KANAL+': ('r', 'ssap://tv/channelUp'), 'KANAL-': ('r', 'ssap://tv/channelDown'),
-    'OYNAT': ('r', 'ssap://media.controls/play'), 'DURAKLAT': ('r', 'ssap://media.controls/pause'),
-    'DURDUR': ('r', 'ssap://media.controls/stop'),
-    'GERI_SAR': ('r', 'ssap://media.controls/rewind'), 'ILERI_SAR': ('r', 'ssap://media.controls/fastForward'),
-    'KIRMIZI': ('b', 'RED'), 'YESIL': ('b', 'GREEN'), 'SARI': ('b', 'YELLOW'), 'MAVI': ('b', 'BLUE'),
-    'SIL': ('r', 'ssap://com.webos.service.ime/deleteCharacters'),
-    'ENTER': ('r', 'ssap://com.webos.service.ime/sendEnterKey'),
+    'YUKARI': [('b', 'UP')], 'ASAGI': [('b', 'DOWN')], 'SOL': [('b', 'LEFT')], 'SAG': [('b', 'RIGHT')],
+    'TAMAM': [('b', 'ENTER')], 'GERI': [('b', 'BACK')], 'ANA': [('b', 'HOME')], 'CIKIS': [('b', 'EXIT')],
+    'AYARLAR': [('b', 'MENU'), ('b', 'QMENU')], 'BILGI': [('b', 'INFO')],
+    'KAYNAK': [('b', 'INPUT_HUB')], 'REHBER': [('b', 'GUIDE'), ('b', 'PROGRAM')], 'SON': [('b', 'RECENT')],
+    'LISTE': [('b', 'LIST')], 'ALTYAZI': [('b', 'CC')], 'SES_DILI': [('b', 'SAP')], 'ORAN': [('b', 'ASPECT_RATIO')],
+    'UYGULAMALAR': [('b', 'MYAPPS')], 'CANLI': [('b', 'DASH')],
+    'SESSIZ': [('b', 'MUTE')],
+    'SES+': [('b', 'VOLUMEUP'), ('r', 'ssap://audio/volumeUp')],
+    'SES-': [('b', 'VOLUMEDOWN'), ('r', 'ssap://audio/volumeDown')],
+    'KANAL+': [('b', 'CHANNELUP'), ('r', 'ssap://tv/channelUp')],
+    'KANAL-': [('b', 'CHANNELDOWN'), ('r', 'ssap://tv/channelDown')],
+    'OYNAT': [('b', 'PLAY'), ('r', 'ssap://media.controls/play')],
+    'DURAKLAT': [('b', 'PAUSE'), ('r', 'ssap://media.controls/pause')],
+    'DURDUR': [('b', 'STOP'), ('r', 'ssap://media.controls/stop')],
+    'GERI_SAR': [('b', 'REWIND'), ('r', 'ssap://media.controls/rewind')],
+    'ILERI_SAR': [('b', 'FASTFORWARD'), ('r', 'ssap://media.controls/fastForward')],
+    'KIRMIZI': [('b', 'RED')], 'YESIL': [('b', 'GREEN')], 'SARI': [('b', 'YELLOW')], 'MAVI': [('b', 'BLUE')],
+    'YILDIZ': [('b', 'ASTERISK')],
+    'SIL': [('r', 'ssap://com.webos.service.ime/deleteCharacters')],
+    'ENTER': [('r', 'ssap://com.webos.service.ime/sendEnterKey'), ('b', 'ENTER')],
 }
 for _r in '0123456789':
-    LG_TUS[_r] = ('b', _r)
+    LG_TUS[_r] = [('b', _r)]
 
 class LGTV:
     tur = 'lg'
@@ -333,13 +345,16 @@ class LGTV:
         self.kilit = threading.Lock()
         self.baglaniyor = False
         self.son_deneme = 0
+        self.sonuclar = {}      # tuş → son deneme sonucu (tuş testi için)
+        self.bilgi = {}         # model, webOS sürümü
+        self.uygulamalar = []   # TV'de yüklü uygulamalar
 
     def ozet(self):
         # Sayfa durumu düzenli sorduğu için: TV kendi kumandasıyla açılırsa burada yakalanır.
         if self.durum == 'kapali' and time.time() - self.son_deneme > 8:
             self.baglan_arkada()
         return {'id': self.id, 'tur': self.tur, 'ad': self.ad, 'adres': self.adres,
-                'durum': self.durum, 'mesaj': self.mesaj, 'mac': self.mac or ''}
+                'durum': self.durum, 'mesaj': self.mesaj, 'mac': self.mac or '', 'bilgi': self.bilgi}
 
     # — bağlantı —
     def baglan_arkada(self):
@@ -367,8 +382,9 @@ class LGTV:
             self.ws = ws
             threading.Thread(target=self._dinle, args=(ws,), daemon=True).start()
             # Yeni webOS sürümleri eşleşmeden önce "hello" ve sistem bilgisi istiyor.
-            self._istek_bekle('hello', None, {}, sure=4, kayit=True, mid='hello')
-            self._istek_bekle('request', 'ssap://system/getSystemInfo', {}, sure=4, kayit=True)
+            merhaba = self._istek_bekle('hello', None, {}, sure=4, kayit=True, mid='hello')
+            sistem = self._istek_bekle('request', 'ssap://system/getSystemInfo', {}, sure=4, kayit=True)
+            self._bilgi_al(merhaba, sistem)
             cevap = None
             for sablon in (LG_KAYIT_YENI, LG_KAYIT):
                 kayit = dict(sablon)
@@ -390,6 +406,7 @@ class LGTV:
                     cihaz_kaydet(self)
                 self.durum, self.mesaj = 'bagli', ''
                 threading.Thread(target=self._mac_ogren, daemon=True).start()
+                threading.Thread(target=self._bagli_sonrasi, daemon=True).start()
             else:
                 hata = (cevap or {}).get('error') or 'TV izin vermedi ya da süre doldu'
                 self.durum, self.mesaj = 'hata', 'Eşleşme olmadı: ' + str(hata)
@@ -511,7 +528,13 @@ class LGTV:
     def tus(self, ad):
         if ad == 'GUC':
             if self.durum == 'bagli':
-                return self.basarili(self.istek('ssap://system/turnOff'))
+                c = self.istek('ssap://system/turnOff')
+                if self.basarili(c):
+                    self.kaydet_sonuc('GUC', True, 'system/turnOff')
+                    return True
+                ok = self.imlec_gonder([('type', 'button'), ('name', 'POWER')])
+                self.kaydet_sonuc('GUC', ok, 'tuş POWER' if ok else '', '' if ok else ((c or {}).get('error') or 'yanıt yok'))
+                return ok
             if not self.mac:
                 self.mesaj = 'TV\'yi açmak için ⚙ menüsünden TV\'nin MAC adresini gir'
                 return False
@@ -520,16 +543,38 @@ class LGTV:
             threading.Timer(6, self.baglan_arkada).start()
             threading.Timer(15, self.baglan_arkada).start()
             return ok
-        e = LG_TUS.get(ad)
-        if not e:
+        yollar = LG_TUS.get(ad)
+        if not yollar:
+            self.kaydet_sonuc(ad, False, '', 'bilinmeyen tuş')
             return False
-        if e[0] == 'b':
-            return self.imlec_gonder([('type', 'button'), ('name', e[1])])
-        yuk = {'count': 1} if ad == 'SIL' else None
-        return self.basarili(self.istek(e[1], yuk))
+        if self.durum != 'bagli':
+            self.baglan_arkada()
+            self.kaydet_sonuc(ad, False, '', 'TV bağlı değil')
+            return False
+        son_hata = ''
+        for yol, deger in yollar:
+            if yol == 'b':
+                if self.imlec_gonder([('type', 'button'), ('name', deger)]):
+                    self.kaydet_sonuc(ad, True, 'tuş ' + deger)
+                    return True
+                son_hata = 'tuş kanalı açılamadı'
+            else:
+                c = self.istek(deger, {'count': 1} if ad == 'SIL' else None)
+                if self.basarili(c):
+                    self.kaydet_sonuc(ad, True, deger.split('ssap://')[-1])
+                    return True
+                son_hata = (c or {}).get('error') or ((c or {}).get('payload') or {}).get('errorText') or 'yanıt yok'
+        self.kaydet_sonuc(ad, False, '', son_hata)
+        return False
+
+    def kaydet_sonuc(self, ad, ok, yol, hata=''):
+        self.sonuclar[ad] = {'ok': ok, 'yol': yol, 'hata': str(hata)[:120], 'zaman': int(time.time())}
 
     def yazi(self, metin):
-        return self.basarili(self.istek('ssap://com.webos.service.ime/insertText', {'text': metin, 'replace': 0}))
+        c = self.istek('ssap://com.webos.service.ime/insertText', {'text': metin, 'replace': 0})
+        ok = self.basarili(c)
+        self.kaydet_sonuc('YAZI', ok, 'ime/insertText' if ok else '', '' if ok else ((c or {}).get('error') or 'TV\'de yazı alanı açık değil'))
+        return ok
 
     def imlec_hareket(self, dx, dy):
         return self.imlec_gonder([('type', 'move'), ('dx', int(dx)), ('dy', int(dy)), ('down', 0)])
@@ -541,7 +586,12 @@ class LGTV:
         return self.imlec_gonder([('type', 'scroll'), ('dx', int(dx)), ('dy', int(dy))])
 
     def uygulama(self, uid):
-        return self.basarili(self.istek('ssap://system.launcher/launch', {'id': uid}))
+        c = self.istek('ssap://system.launcher/launch', {'id': uid})
+        if not self.basarili(c):
+            c = self.istek('ssap://com.webos.applicationManager/launch', {'id': uid})
+        ok = self.basarili(c)
+        self.kaydet_sonuc('UYG:' + uid, ok, 'launch' if ok else '', '' if ok else ((c or {}).get('error') or 'uygulama yüklü değil'))
+        return ok
 
     def adres_ac(self, url):
         return self.basarili(self.istek('ssap://system.launcher/open', {'target': url}))
@@ -595,6 +645,53 @@ class LGTV:
 
     def kanal_ac(self, kid):
         return self.basarili(self.istek('ssap://tv/openChannel', {'channelId': kid}))
+
+    def _bilgi_al(self, merhaba, sistem):
+        m = (merhaba or {}).get('payload') or {}
+        s = (sistem or {}).get('payload') or {}
+        for k, v in (('model', s.get('modelName') or m.get('modelName')),
+                     ('webos', m.get('deviceOSReleaseVersion') or m.get('deviceOSVersion')),
+                     ('isletim', m.get('deviceOS')), ('alici', s.get('receiverType')),
+                     ('ulke', s.get('countryGroup') or s.get('programMode'))):
+            if v:
+                self.bilgi[k] = str(v)
+
+    def _bagli_sonrasi(self):
+        # Eşleşmeden sonra izin verilirse daha ayrıntılı bilgi gelebilir
+        s = (self.istek('ssap://system/getSystemInfo') or {}).get('payload') or {}
+        if s.get('modelName'):
+            self.bilgi['model'] = s['modelName']
+        y = (self.istek('ssap://com.webos.service.update/getCurrentSWInformation') or {}).get('payload') or {}
+        if y.get('product_name'):
+            self.bilgi['urun'] = y['product_name']
+        if y.get('major_ver'):
+            self.bilgi['surum'] = '%s.%s' % (y.get('major_ver'), y.get('minor_ver', ''))
+        self.uygulamalari_al()
+
+    def uygulamalari_al(self):
+        p = (self.istek('ssap://com.webos.applicationManager/listLaunchPoints', sure=8) or {}).get('payload') or {}
+        liste = []
+        for a in p.get('launchPoints') or []:
+            if not a.get('id') or a.get('id') in ('com.webos.app.discovery',):
+                continue
+            liste.append({'id': a['id'], 'ad': a.get('title') or a['id'],
+                          'ikon': a.get('largeIcon') or a.get('icon') or ''})
+        if liste:
+            self.uygulamalar = liste
+        return self.uygulamalar
+
+    def ikon_getir(self, uid):
+        """Uygulama ikonunu TV'den alır (sayfa https olduğu için TV'nin http adresini doğrudan yükleyemez)."""
+        import urllib.request
+        a = next((x for x in self.uygulamalar if x['id'] == uid), None)
+        url = (a or {}).get('ikon') or ''
+        if not re.match(r'^https?://' + re.escape(self.adres) + r'[:/]', url):
+            return None, None
+        try:
+            with urllib.request.urlopen(url, timeout=6) as y:
+                return y.read(2 * 1024 * 1024), y.headers.get('Content-Type', 'image/png')
+        except Exception:
+            return None, None
 
     def _mac_ogren(self):
         if self.mac:
@@ -772,6 +869,8 @@ ADB_TUS = {
     'OYNAT_DURAKLAT': 85, 'OYNAT': 126, 'DURAKLAT': 127, 'DURDUR': 86, 'GERI_SAR': 89, 'ILERI_SAR': 90,
     'SON': 187, 'SIL': 67, 'ENTER': 66, 'GUC': 26, 'BILGI': 165, 'CIKIS': 4,
     'KIRMIZI': 183, 'YESIL': 184, 'SARI': 185, 'MAVI': 186,
+    'KAYNAK': 178, 'REHBER': 172, 'ALTYAZI': 175, 'SES_DILI': 222, 'UYGULAMALAR': 284, 'CANLI': 170,
+    'YILDIZ': 17, 'LISTE': 172,
 }
 for _r in '0123456789':
     ADB_TUS[_r] = 7 + int(_r)
@@ -795,6 +894,7 @@ class ADBCihaz:
         self.ekran = [1920, 1080]
         self.durum, self.mesaj = 'kapali', ''
         self._son_kontrol = 0
+        self.sonuclar = {}
 
     def ozet(self):
         if time.time() - self._son_kontrol > 3:
@@ -865,7 +965,9 @@ class ADBCihaz:
 
     def tus(self, ad):
         k = ADB_TUS.get(ad)
-        return self.gonder('input keyevent %d' % k) if k is not None else False
+        ok = self.gonder('input keyevent %d' % k) if k is not None else False
+        self.sonuclar[ad] = {'ok': ok, 'yol': ('keyevent %d' % k) if ok else '', 'hata': '' if ok else ('bilinmeyen tuş' if k is None else 'adb bağlı değil'), 'zaman': int(time.time())}
+        return ok
 
     def yazi(self, t):
         t = t.translate(TR)
@@ -954,6 +1056,9 @@ def cihaz_ayarla(proj_adres, tv_adres, tv_mac):
 IZINLI = {'null', 'http://127.0.0.1:%d' % PORT, 'http://localhost:%d' % PORT,
           'https://azataslan065-png.github.io'}
 GITHUB_SAYFA = 'https://azataslan065-png.github.io/kumanda/'
+# Uygulama olarak yükleme (PWA) dosyaları — köprü klasöründen sunulur
+STATIK = {'manifest.webmanifest': 'application/manifest+json', 'sw.js': 'text/javascript; charset=utf-8',
+          'ikon-192.png': 'image/png', 'ikon-512.png': 'image/png', 'ikon-maskable-512.png': 'image/png'}
 
 # Köprü ev ağından da erişilebilir (GitHub sayfası telefondaki 127.0.0.1'e erişemediği için).
 # Ağdan gelen her istek bu gizli anahtarı taşımak zorunda; telefonun kendisinden gelenler muaf.
@@ -1046,10 +1151,25 @@ class H(BaseHTTPRequestHandler):
                                 'azataslan065-png/kumanda/main/index.html</code><br>ya da '
                                 '<a href="https://azataslan065-png.github.io/kumanda/">kumandayı buradan aç</a>.</p>',
                            'text/html')
+        elif yol.path.lstrip('/') in STATIK:
+            ad = yol.path.lstrip('/')
+            try:
+                with open(os.path.join(os.path.dirname(SAYFA_DOSYASI), ad), 'rb') as f:
+                    veri = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', STATIK[ad])
+                self.send_header('Cache-Control', 'no-cache')
+                if ad == 'sw.js':
+                    self.send_header('Service-Worker-Allowed', '/')
+                self.send_header('Content-Length', str(len(veri)))
+                self.end_headers()
+                self.wfile.write(veri)
+            except OSError:
+                self.yanit(404, {})
         elif not self.izinli(q):
             self.yanit(403, {'ok': False, 'hata': 'anahtar'})
         elif yol.path == '/durum':
-            d = {'surum': 5, 'adb': ADB_VAR,
+            d = {'surum': 6, 'adb': ADB_VAR,
                  'cihazlar': [c.ozet() for c in list(CIHAZLAR.values())],
                  'ayar': {'projeksiyon': (AYAR.get('projeksiyon') or {}).get('adres', ''),
                           'tv': (AYAR.get('tv') or {}).get('adres', ''),
@@ -1068,6 +1188,33 @@ class H(BaseHTTPRequestHandler):
         elif yol.path == '/kanallar':
             c = CIHAZLAR.get(q.get('c'))
             self.yanit(200, c.kanallar() if isinstance(c, LGTV) else {'kanallar': [], 'hata': 'Kanal listesi yalnızca LG TV\'de var'})
+        elif yol.path == '/tani':
+            c = CIHAZLAR.get(q.get('c'))
+            if not c:
+                self.yanit(200, {'hata': 'cihaz yok'})
+            else:
+                self.yanit(200, {'tur': c.tur, 'bilgi': getattr(c, 'bilgi', {}), 'sonuclar': c.sonuclar,
+                                 'tuslar': sorted(LG_TUS if c.tur == 'lg' else ADB_TUS)})
+        elif yol.path == '/uygulamalar':
+            c = CIHAZLAR.get(q.get('c'))
+            if isinstance(c, LGTV) and c.durum == 'bagli':
+                liste = c.uygulamalari_al() if q.get('yenile') or not c.uygulamalar else c.uygulamalar
+                self.yanit(200, {'uygulamalar': [{'id': a['id'], 'ad': a['ad'], 'ikon': bool(a['ikon'])} for a in liste]})
+            else:
+                self.yanit(200, {'uygulamalar': [], 'hata': 'TV bağlı değil'})
+        elif yol.path == '/ikon':
+            c = CIHAZLAR.get(q.get('c'))
+            veri, tur = c.ikon_getir(q.get('id', '')) if isinstance(c, LGTV) else (None, None)
+            if veri:
+                self.send_response(200)
+                self.cors()
+                self.send_header('Content-Type', tur)
+                self.send_header('Cache-Control', 'max-age=86400')
+                self.send_header('Content-Length', str(len(veri)))
+                self.end_headers()
+                self.wfile.write(veri)
+            else:
+                self.yanit(404, {})
         elif yol.path == '/simdiki':
             c = CIHAZLAR.get(q.get('c'))
             self.yanit(200, {'simdiki': c.simdiki_kanal() if isinstance(c, LGTV) and c.durum == 'bagli' else ''})
