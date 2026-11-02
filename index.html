@@ -105,7 +105,10 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 .uclu .b span,.ekler .b span{white-space:nowrap}
 .baslik{display:flex;align-items:center;justify-content:space-between}
 .baslik .tumu{background:none;border:0;color:var(--vurgu);font-size:13px;font-weight:700;text-transform:none;letter-spacing:0;padding:4px 2px}
-.uyg .b img{width:30px;height:30px;object-fit:contain;border-radius:7px}
+.ikonKutu{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none}
+.ikonKutu img{width:100%;height:100%;object-fit:contain;display:block}
+.ikonKutu i{font-style:normal;font-weight:800;font-size:17px;color:#fff}
+.uyg .b{gap:6px}
 .uyg .b .uad{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 4px}
 .kanalBtn{width:100%;margin-bottom:16px;min-height:56px;font-size:16px;background:linear-gradient(90deg,#1c2a4a,var(--tus))}
 .kanalPanel{position:fixed;inset:0;background:var(--bg);z-index:25;display:flex;flex-direction:column}
@@ -677,14 +680,21 @@ try{ uygListe=JSON.parse(oku('uygulamalar','[]'))||[]; }catch(e){ uygListe=[]; }
 function ikonUrl(id){ return SUNUCU+'/ikon?c='+encodeURIComponent(secili)+'&id='+encodeURIComponent(id)+(ANAHTAR?'&k='+encodeURIComponent(ANAHTAR):''); }
 function uygDugme(a){
   const b=document.createElement('button'); b.className='b'; b.dataset.uygId=a.id;
-  const yedek=()=>{ const i=document.createElement('i'); i.textContent=(a.ad||'?').trim()[0].toUpperCase(); i.style.cssText='width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;background:'+renk(a.ad); return i; };
-  if(a.ikon){ const im=document.createElement('img'); im.alt=''; im.loading='lazy'; im.src=ikonUrl(a.id); im.onerror=()=>im.replaceWith(yedek()); b.appendChild(im); } else b.appendChild(yedek());
+  // İkon, LG'nin o uygulama için verdiği arka plan renginde bir karonun içinde gösterilir
+  const kutu=document.createElement('span'); kutu.className='ikonKutu'; kutu.style.background=a.renk||'#2c3142';
+  const harf=()=>{ kutu.innerHTML=''; kutu.style.background=a.renk||renk(a.ad); const i=document.createElement('i'); i.textContent=(a.ad||'?').trim()[0].toLocaleUpperCase('tr'); kutu.appendChild(i); };
+  if(a.ikon){ const im=document.createElement('img'); im.alt=''; im.decoding='async'; im.src=ikonUrl(a.id); im.onerror=harf; kutu.appendChild(im); } else harf();
+  b.appendChild(kutu);
   const s=document.createElement('span'); s.className='uad'; s.textContent=a.ad; b.appendChild(s);
   b.onclick=()=>{ titre(); post('/uygulama',{c:secili,id:a.id}).then(r=>{ if(r.ok){ bildir(a.ad+' açılıyor'); $('#uygPerde').classList.add('gizli'); } else { sonuc(r); if(!r.mesaj&&!r.hata) bildir(a.ad+' açılamadı (TV\'de yüklü mü?)'); } }); };
   return b;
 }
-function uygulamalariCiz(){
+let uygImza='';
+function uygulamalariCiz(zorla){
   const k=$('#uyg'); if(!k) return; const tur=aktif()?.tur||'adb';
+  // Durum her 3 sn'de yenilenir; ızgara yalnızca liste ya da cihaz değişince yeniden çizilir (ikonlar titremesin)
+  const imza=tur+'|'+secili+'|'+SUNUCU+'|'+uygListe.map(a=>a.id+':'+(a.renk||'')+':'+(a.ikon?1:0)).join(',');
+  if(!zorla && imza===uygImza) return; uygImza=imza;
   [...k.querySelectorAll('[data-uyg-id]')].forEach(x=>x.remove());
   $('#tumUygBtn').classList.toggle('gizli', tur!=='lg' || !uygListe.length);
   if(tur!=='lg') return;

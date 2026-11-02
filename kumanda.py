@@ -331,6 +331,17 @@ LG_TUS = {
 for _r in '0123456789':
     LG_TUS[_r] = [('b', _r)]
 
+IKON_BELLEK = {}
+IKON_KLASORU = os.path.expanduser('~/.kumanda_ikonlar')
+
+def _resim_turu(v):
+    if v[:8] == b'\x89PNG\r\n\x1a\n': return 'image/png'
+    if v[:3] == b'\xff\xd8\xff': return 'image/jpeg'
+    if v[:4] == b'RIFF' and v[8:12] == b'WEBP': return 'image/webp'
+    if v[:6] in (b'GIF87a', b'GIF89a'): return 'image/gif'
+    if v.lstrip()[:5] in (b'<svg ', b'<?xml'): return 'image/svg+xml'
+    return None
+
 class LGTV:
     tur = 'lg'
 
@@ -674,24 +685,61 @@ class LGTV:
         for a in p.get('launchPoints') or []:
             if not a.get('id') or a.get('id') in ('com.webos.app.discovery',):
                 continue
-            liste.append({'id': a['id'], 'ad': a.get('title') or a['id'],
-                          'ikon': a.get('largeIcon') or a.get('icon') or ''})
+            adaylar = [u for u in (a.get('largeIcon'), a.get('icon'), a.get('mediumLargeIcon'), a.get('iconColor')) if isinstance(u, str) and u]
+            renk = a.get('bgColor') or ''
+            liste.append({'id': a['id'], 'ad': a.get('title') or a['id'], 'ikonlar': adaylar,
+                          'ikon': adaylar[0] if adaylar else '',
+                          'renk': renk if re.match(r'^#[0-9a-fA-F]{3,8}$', str(renk)) else ''})
         if liste:
             self.uygulamalar = liste
         return self.uygulamalar
 
     def ikon_getir(self, uid):
-        """Uygulama ikonunu TV'den alır (sayfa https olduğu için TV'nin http adresini doğrudan yükleyemez)."""
-        import urllib.request
-        a = next((x for x in self.uygulamalar if x['id'] == uid), None)
-        url = (a or {}).get('ikon') or ''
-        if not re.match(r'^https?://' + re.escape(self.adres) + r'[:/]', url):
-            return None, None
+        """Uygulama ikonunu TV'den alır ve saklar.
+        Sayfa https'ten açıldığı için TV'nin http adresindeki ikonu doğrudan yükleyemez; köprü aktarır."""
+        import urllib.request, hashlib
+        if uid in IKON_BELLEK:
+            return IKON_BELLEK[uid]
+        dosya = os.path.join(IKON_KLASORU, hashlib.sha1(uid.encode()).hexdigest() + '.img')
         try:
-            with urllib.request.urlopen(url, timeout=6) as y:
-                return y.read(2 * 1024 * 1024), y.headers.get('Content-Type', 'image/png')
-        except Exception:
-            return None, None
+            with open(dosya, 'rb') as f:
+                veri = f.read()
+            if veri:
+                IKON_BELLEK[uid] = (veri, _resim_turu(veri))
+                return IKON_BELLEK[uid]
+        except OSError:
+            pass
+        a = next((x for x in self.uygulamalar if x['id'] == uid), None)
+        tls = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        tls.check_hostname = False
+        tls.verify_mode = ssl.CERT_NONE          # TV kendi imzaladığı sertifikayı kullanır
+        for url in (a or {}).get('ikonlar') or ([a['ikon']] if a and a.get('ikon') else []):
+            u = urlparse(url)
+            if u.scheme not in ('http', 'https'):
+                continue
+            # TV bazen kendi adresini localhost olarak yazıyor; yalnızca TV'nin kendisine gidilir
+            if u.hostname in ('localhost', '127.0.0.1', '::1'):
+                url = url.replace(u.netloc, self.adres + (':%d' % u.port if u.port else ''), 1)
+            elif u.hostname != self.adres:
+                continue
+            for _ in range(2):
+                try:
+                    with urllib.request.urlopen(url, timeout=8, context=tls) as y:
+                        veri = y.read(2 * 1024 * 1024)
+                    tur = _resim_turu(veri)
+                    if tur:
+                        IKON_BELLEK[uid] = (veri, tur)
+                        try:
+                            os.makedirs(IKON_KLASORU, exist_ok=True)
+                            with open(dosya, 'wb') as f:
+                                f.write(veri)
+                        except OSError:
+                            pass
+                        return veri, tur
+                    break        # resim değil, sonraki adaya geç
+                except Exception:
+                    time.sleep(0.4)
+        return None, None
 
     def _mac_ogren(self):
         if self.mac:
@@ -1199,7 +1247,7 @@ class H(BaseHTTPRequestHandler):
             c = CIHAZLAR.get(q.get('c'))
             if isinstance(c, LGTV) and c.durum == 'bagli':
                 liste = c.uygulamalari_al() if q.get('yenile') or not c.uygulamalar else c.uygulamalar
-                self.yanit(200, {'uygulamalar': [{'id': a['id'], 'ad': a['ad'], 'ikon': bool(a['ikon'])} for a in liste]})
+                self.yanit(200, {'uygulamalar': [{'id': a['id'], 'ad': a['ad'], 'ikon': bool(a.get('ikon')), 'renk': a.get('renk', '')} for a in liste]})
             else:
                 self.yanit(200, {'uygulamalar': [], 'hata': 'TV bağlı değil'})
         elif yol.path == '/ikon':
@@ -1209,7 +1257,7 @@ class H(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.cors()
                 self.send_header('Content-Type', tur)
-                self.send_header('Cache-Control', 'max-age=86400')
+                self.send_header('Cache-Control', 'public, max-age=604800, immutable')
                 self.send_header('Content-Length', str(len(veri)))
                 self.end_headers()
                 self.wfile.write(veri)
