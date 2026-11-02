@@ -372,7 +372,7 @@ async function izinOku(){
 function titre(){try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}}
 function bildir(t){const b=$('#bildirim');b.textContent=t;b.classList.add('var');clearTimeout(bildir.z);bildir.z=setTimeout(()=>b.classList.remove('var'),2600)}
 function aktif(){return cihazlar.find(c=>c.id===secili)}
-function sonuc(r){ if(r && r.ok===false && !r.ag){ if(r.mesaj) bildir(r.mesaj); else if(r.hata) bildir(r.hata); else if(r.durum && r.durum!=='bagli') bildir('Cihaza bağlanılıyor…'); } return r; }
+function sonuc(r){ if(r && r.ok===false && !r.ag){ if(r.hata) bildir(r.hata); else if(r.mesaj) bildir(r.mesaj); else if(r.durum && r.durum!=='bagli') bildir('Cihaza bağlanılıyor…'); } return r; }
 function tus(t){titre(); if(!secili) return; return post('/tus',{c:secili,t}).then(sonuc)}
 
 // ── tuşlar (basılı tutunca tekrar) ──
@@ -400,9 +400,27 @@ $('#kaynakBtn').onclick=async()=>{
 };
 
 // ── yazı ──
-function yaziGonder(){const t=$('#metin').value;if(!t||!secili)return;titre();post('/yazi',{c:secili,t}).then(r=>{sonuc(r);if(r.ok)$('#metin').value=''})}
+let yaziHata='';
+function yaziGonder(){ const t=$('#metin').value; if(!t||!secili) return; titre();
+  const btn=$('#gonder'); btn.disabled=true;
+  post('/yazi',{c:secili,t}).then(r=>{ btn.disabled=false;
+    if(r.ok){ $('#metin').value=''; yaziHata=''; bildir('Yazı TV\'ye gönderildi ✓'); }
+    else { yaziHata = r.hata || (r.ag ? 'Köprüye ulaşılamadı' : 'TV yazıyı kabul etmedi'); bildir(yaziHata); }
+    yaziNotGuncelle(); }); }
+function yaziNotGuncelle(){
+  const n=$('#yaziNot'), c=aktif(); if(!n) return;
+  n.style.color='';
+  if(!c){ n.textContent=''; return; }
+  if(c.tur!=='lg'){ n.textContent='Türkçe harfler sadeleştirilir (ç→c, ş→s…).'; return; }
+  if(yaziHata){ n.textContent='⚠ '+yaziHata; n.style.color='#ffb3bb'; return; }
+  if(c.yazi_izni===false){ n.textContent='⚠ TV yazı gönderme iznini vermiyor. TV\'nin ekran klavyesini Dokunmatik sekmesinden kullanabilirsin.'; n.style.color='#ffb3bb'; return; }
+  if(c.klavye===true){ n.textContent='✓ TV\'de yazı kutusu açık, yazdığın oraya gider.'; n.style.color='#8fe3a8'; return; }
+  if(c.klavye===false){ n.textContent='TV\'de önce bir yazı kutusu seç (ör. YouTube arama), sonra gönder.'; return; }
+  n.textContent='TV\'de bir yazı kutusu seçiliyken çalışır (ör. YouTube arama).';
+}
 $('#gonder').onclick=yaziGonder;
 $('#metin').addEventListener('keydown',e=>{if(e.key==='Enter')yaziGonder()});
+$('#metin').addEventListener('input',()=>{ if(yaziHata){ yaziHata=''; yaziNotGuncelle(); } });
 
 // ── sekmeler ──
 $$('.sekmeler button').forEach(b=>b.onclick=()=>{
@@ -453,7 +471,8 @@ function arayuz(){
   const kurulumGerek = kopruVar===true && !cihazlar.length;
   $('#kurulum').classList.toggle('gizli',!kurulumGerek);
   $('#anaPanel').classList.toggle('gizli',kurulumGerek);
-  $('#yaziNot').textContent = tur==='lg' ? 'TV\'de bir yazı alanı açıkken çalışır (ör. YouTube arama).' : 'Türkçe harfler sadeleştirilir (ç→c, ş→s…).';
+  if(c && c.klavye===true) yaziHata='';
+  yaziNotGuncelle();
   $('#pedYazi').innerHTML = tur==='lg' ? 'Parmağını kaydır = imleci oynat<br>Dokun = tıkla' : 'Dokun = tıkla · Kaydır = sürükle<br>Alan ekranla birebir eşleşir';
   cihazlariCiz();
   const d=$('#durum'), u=$('#uyari');

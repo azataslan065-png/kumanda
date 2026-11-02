@@ -359,13 +359,16 @@ class LGTV:
         self.sonuclar = {}      # tuş → son deneme sonucu (tuş testi için)
         self.bilgi = {}         # model, webOS sürümü
         self.uygulamalar = []   # TV'de yüklü uygulamalar
+        self.klavye = None      # TV'de yazı kutusu seçili mi (None = bilinmiyor)
+        self.yazi_izni = None   # TV yazı gönderme iznini verdi mi
 
     def ozet(self):
         # Sayfa durumu düzenli sorduğu için: TV kendi kumandasıyla açılırsa burada yakalanır.
         if self.durum == 'kapali' and time.time() - self.son_deneme > 8:
             self.baglan_arkada()
         return {'id': self.id, 'tur': self.tur, 'ad': self.ad, 'adres': self.adres,
-                'durum': self.durum, 'mesaj': self.mesaj, 'mac': self.mac or '', 'bilgi': self.bilgi}
+                'durum': self.durum, 'mesaj': self.mesaj, 'mac': self.mac or '', 'bilgi': self.bilgi,
+                'klavye': self.klavye, 'yazi_izni': self.yazi_izni}
 
     # — bağlantı —
     def baglan_arkada(self):
@@ -440,6 +443,9 @@ class LGTV:
             if o.get('type') == 'response' and p.get('pairingType') == 'PROMPT':
                 self.durum = 'onay'
                 self.mesaj = 'TV ekranındaki izin isteğini TV kumandasıyla kabul et'
+                continue
+            if o.get('id') == 'klavye':
+                self._klavye_olayi(o)
                 continue
             b = self.bekleyen.get(o.get('id')) or (self.bekleyen.get('hello') if o.get('type') == 'hello' else None)
             if b:
@@ -579,13 +585,31 @@ class LGTV:
         return False
 
     def kaydet_sonuc(self, ad, ok, yol, hata=''):
-        self.sonuclar[ad] = {'ok': ok, 'yol': yol, 'hata': str(hata)[:120], 'zaman': int(time.time())}
+        self.sonuclar[ad] = {'ok': ok, 'yol': yol, 'hata': str(hata)[:300], 'zaman': int(time.time())}
 
     def yazi(self, metin):
+        if self.durum != 'bagli':
+            self.baglan_arkada()
+            self.kaydet_sonuc('YAZI', False, '', 'TV bağlı değil')
+            return False
         c = self.istek('ssap://com.webos.service.ime/insertText', {'text': metin, 'replace': 0})
         ok = self.basarili(c)
-        self.kaydet_sonuc('YAZI', ok, 'ime/insertText' if ok else '', '' if ok else ((c or {}).get('error') or 'TV\'de yazı alanı açık değil'))
-        return ok
+        if ok:
+            self.yazi_izni = True
+            self.kaydet_sonuc('YAZI', True, 'ime/insertText')
+            return True
+        ham = str((c or {}).get('error') or ((c or {}).get('payload') or {}).get('errorText') or '')
+        if '401' in ham or 'permission' in ham.lower() or 'denied' in ham.lower():
+            self.yazi_izni = False
+            neden = ('TV yazı gönderme iznini vermiyor (%s). Bunun yerine TV\'nin ekran klavyesine '
+                     'Dokunmatik sekmesinden imleçle dokunabilirsin.' % ham)
+        elif self.klavye is not True:
+            neden = ('TV\'de bir yazı kutusu seçili değil. Önce TV\'de arama kutusunu seç (OK), '
+                     'ekran klavyesi açılınca tekrar gönder.' + (' (TV: %s)' % ham if ham else ''))
+        else:
+            neden = 'TV yazıyı kabul etmedi: ' + ham
+        self.kaydet_sonuc('YAZI', False, '', neden)
+        return False
 
     def imlec_hareket(self, dx, dy):
         return self.imlec_gonder([('type', 'move'), ('dx', int(dx)), ('dy', int(dy)), ('down', 0)])
@@ -667,7 +691,31 @@ class LGTV:
             if v:
                 self.bilgi[k] = str(v)
 
+    def _klavye_olayi(self, o):
+        if o.get('type') == 'error':
+            hata = str(o.get('error', ''))
+            if '401' in hata or 'permission' in hata.lower():
+                self.yazi_izni = False
+            return
+        p = o.get('payload') or {}
+        w = p.get('currentWidget')
+        if isinstance(w, dict):
+            self.klavye = bool(w.get('focus'))
+        elif 'focus' in p:
+            self.klavye = bool(p.get('focus'))
+
+    def klavye_dinle(self):
+        ws = self.ws
+        if ws:
+            try:
+                ws.gonder(json.dumps({'type': 'subscribe', 'id': 'klavye',
+                                      'uri': 'ssap://com.webos.service.ime/registerRemoteKeyboard'}))
+            except Exception:
+                pass
+
     def _bagli_sonrasi(self):
+        self.klavye, self.yazi_izni = None, None
+        self.klavye_dinle()
         # Eşleşmeden sonra izin verilirse daha ayrıntılı bilgi gelebilir
         s = (self.istek('ssap://system/getSystemInfo') or {}).get('payload') or {}
         if s.get('modelName'):
@@ -1217,7 +1265,7 @@ class H(BaseHTTPRequestHandler):
         elif not self.izinli(q):
             self.yanit(403, {'ok': False, 'hata': 'anahtar'})
         elif yol.path == '/durum':
-            d = {'surum': 6, 'adb': ADB_VAR,
+            d = {'surum': 7, 'adb': ADB_VAR,
                  'cihazlar': [c.ozet() for c in list(CIHAZLAR.values())],
                  'ayar': {'projeksiyon': (AYAR.get('projeksiyon') or {}).get('adres', ''),
                           'tv': (AYAR.get('tv') or {}).get('adres', ''),
@@ -1324,7 +1372,11 @@ class H(BaseHTTPRequestHandler):
         except Exception as e:
             self.yanit(200, {'ok': False, 'hata': str(e)})
             return
-        self.yanit(200, {'ok': bool(ok), 'durum': c.durum, 'mesaj': c.mesaj})
+        neden = ''
+        if not ok:
+            anahtar = {'/yazi': 'YAZI', '/tus': v.get('t', ''), '/uygulama': 'UYG:' + v.get('id', '')}.get(self.path)
+            neden = ((getattr(c, 'sonuclar', {}) or {}).get(anahtar) or {}).get('hata', '') if anahtar else ''
+        self.yanit(200, {'ok': bool(ok), 'durum': c.durum, 'mesaj': c.mesaj, 'hata': neden})
 
 ADB_VAR = False
 
