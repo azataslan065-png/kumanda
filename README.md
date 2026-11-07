@@ -7,7 +7,15 @@ Telefondan projeksiyon ve LG TV kontrolü + Canlı TV.
 - `kumanda.py` — Termux köprüsü (yalnızca Python, ek paket gerekmez)
 
 ## Desteklenen cihazlar
+Aynı anda birden fazla cihaz eklenebilir; kumandanın üstündeki düğmelerle aralarında geçilir.
 - **LG akıllı TV (webOS)** — Wi‑Fi üzerinden. İlk bağlantıda TV ekranında çıkan izin isteği kabul edilir.
+- **Toshiba TV** — üç sistemin üçü de; hangisi olduğu TV'nin açık bağlantı noktalarından kendiliğinden anlaşılır:
+  - *Google TV / Android TV*: Android TV Remote v2 (Google TV uygulamasının yolu). İlk bağlantıda TV'de 6 haneli kod çıkar.
+  - *VIDAA*: TV'nin MQTT sunucusu. İlk bağlantıda TV'de 4 haneli kod çıkar. VIDAA uygulamasının sertifikası ilk seferde
+    [vidaa-control](https://github.com/tombabolewski/vidaa-control) deposundan indirilir.
+  - *Smart Center* (Vestel altyapılı eski modeller): DIAL sanal kumanda. Renk ve Bilgi tuş kodları tahminidir.
+  - Bu TV'ler kanal listesini ağdan vermediği için kanal listesi kumandada tutulur: bir kanala ilk dokunuşta TV'deki
+    numarası sorulur. Smart Center'da "TV'den öğren" numaraları TV'yi dolaşarak kendisi bulur.
 - **Android projeksiyon / Android TV** — ADB ile (`pkg install android-tools`, cihazda ADB hata ayıklama açık).
 
 ## Kurulum (Termux)
@@ -16,7 +24,9 @@ pkg install python android-tools -y
 curl -L --remote-name-all https://raw.githubusercontent.com/azataslan065-png/kumanda/main/{kumanda.py,index.html,manifest.webmanifest,sw.js,ikon-192.png,ikon-512.png,ikon-maskable-512.png}
 python kumanda.py
 ```
-Sonra tarayıcıda `http://127.0.0.1:8080` → ⚙ → "Ağda ara" → Kaydet.
+Sonra tarayıcıda `http://127.0.0.1:8080` → ⚙ → "Ağda ara" → bulunan cihazın yanındaki **Ekle**.
+
+Termux arka planda kapanmasın: Termux bildiriminde **Acquire wakelock**, Android ayarlarında Termux için pil **Kısıtlanmamış**.
 
 ## Uygulama olarak yükleme
 Kumanda yüklenebilir bir web uygulamasıdır (PWA). Chrome'da kumandayı aç → ⋮ → **Uygulamayı yükle**

@@ -26,8 +26,9 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 .durum.bekle .nokta{background:var(--sari);animation:yanson 1s infinite}
 @keyframes yanson{50%{opacity:.3}}
 .cark{background:var(--kart);border:0;color:var(--soluk);border-radius:20px;width:36px;height:34px;font-size:17px}
-.cihazlar{display:flex;gap:8px;margin-bottom:12px}
-.cihazlar button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--kart);border:2px solid transparent;border-radius:14px;padding:10px 8px;font-size:14px;font-weight:700;color:var(--soluk)}
+.cihazlar{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}
+.cihazlar::-webkit-scrollbar{display:none}
+.cihazlar button{flex:1 0 auto;white-space:nowrap;scroll-snap-align:start;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--kart);border:2px solid transparent;border-radius:14px;padding:10px 8px;font-size:14px;font-weight:700;color:var(--soluk)}
 .cihazlar button.aktif{border-color:var(--vurgu);color:var(--yazi);background:#1a2235}
 .cihazlar .mini{width:7px;height:7px;border-radius:50%;background:var(--kirmizi)}
 .cihazlar .mini.ok{background:var(--yesil)}
@@ -91,6 +92,38 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 .panel .satir .b{flex:1;min-height:46px}
 .panel .ana{background:var(--vurgu)}
 .ayrac{height:1px;background:var(--tus2);margin:16px 0}
+.alan select{width:100%;background:var(--bg);border:1px solid var(--tus2);color:var(--yazi);border-radius:10px;padding:11px;font-size:15px;margin-bottom:8px}
+.alan input+input{margin-top:8px}
+.cihazListe{display:flex;flex-direction:column;gap:8px;margin-bottom:4px}
+.cRow{display:flex;align-items:center;gap:10px;background:var(--bg);border-radius:12px;padding:9px 10px}
+.cRow .ci{font-size:20px;width:26px;text-align:center}
+.cRow .cb{flex:1;min-width:0}
+.cRow .cb b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cRow .cb small{display:block;color:var(--soluk);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cRow .mini{width:8px;height:8px;border-radius:50%;background:var(--kirmizi);flex:none}
+.cRow .mini.ok{background:var(--yesil)}.cRow .mini.bekle{background:var(--sari)}
+.kucuk{min-height:36px!important;padding:0 12px;font-size:13px;border-radius:10px;flex:none}
+.kucuk.tehlike{background:#3a1c22;color:#ffb3bb}
+.bulunanListe{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.bulunanListe .cRow{background:#141b2c;border:1px solid #23314f}
+.eslesme{background:#18233a;border:1px solid #2b4170;border-radius:14px;padding:12px;margin-bottom:12px}
+.eslesme b{font-size:15px}
+.eslesme p{margin:4px 0 8px;font-size:13px;color:#b9cdfa;line-height:1.45}
+.eslesme input{letter-spacing:6px;font-size:22px!important;font-weight:700;text-align:center;text-transform:uppercase}
+.kp-arac{display:flex;gap:8px;padding:0 16px 8px}
+.kp-arac .b{flex:1;min-height:40px;font-size:13px;border-radius:12px}
+.kp-arac .b.aktif{background:var(--vurgu)}
+.kanal .no.bos{color:#4a5166}
+.kanal.ekle .logo{background:#1d2436;color:var(--vurgu);font-size:24px;font-weight:700}
+.kanal.duzen .no{color:var(--vurgu)}
+.noSayfa{padding:16px 16px calc(18px + env(safe-area-inset-bottom))}
+.noSayfa h3{margin:0 0 4px;font-size:17px}
+.noSayfa p{margin:0 0 12px;color:var(--soluk);font-size:13px;line-height:1.45}
+.noSayfa input{width:100%;background:var(--bg);border:1px solid var(--tus2);color:var(--yazi);border-radius:12px;padding:12px;font-size:18px;margin-bottom:10px}
+.noSayfa #noNo{font-size:26px;font-weight:700;text-align:center;letter-spacing:4px}
+.noSayfa .satir{display:flex;gap:10px}
+.noSayfa .satir .b{flex:1;min-height:48px}
+.noSayfa .ana{background:var(--vurgu)}
 /* kanal listesi */
 .orta3{display:grid;grid-template-rows:repeat(3,1fr);gap:10px}
 .orta3 .b{flex-direction:row;font-size:14px}
@@ -189,12 +222,15 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 
 <div class="cihazlar" id="cihazlar"></div>
 <div class="uyari kirmizi gizli" id="uyari"></div>
+<div class="eslesme gizli" id="eslesme"><b>📺 TV ile eşleş</b><p id="eslesmeYazi"></p>
+  <div class="yazi"><input id="kodGir" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done"><button class="b" id="kodBtn" style="background:var(--vurgu)">Eşleş</button></div>
+  <p style="margin:8px 0 0">TV'de kod görünmüyor ya da süresi geçtiyse <a href="#" id="yeniKod" style="color:#8fb4ff">yeni kod iste</a>.</p></div>
 
 <div id="anaPanel">
-<div class="sekmeler"><button class="aktif" data-s="kumanda">Kumanda</button><button data-s="ped">Dokunmatik</button></div>
+<div class="sekmeler" data-yalniz="lg adb"><button class="aktif" data-s="kumanda">Kumanda</button><button data-s="ped">Dokunmatik</button></div>
 
 <section id="kumanda">
-<div class="ust"><button class="b guc" data-t="GUC" aria-label="Güç"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></button><button class="b" id="kaynakBtn" data-yalniz="lg" aria-label="Kaynak"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M12 9v8M9 12l3-3 3 3M8 21h8"/></svg><span>Kaynak</span></button><button class="b" data-t="KAYNAK" data-yalniz="adb"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M12 9v8M9 12l3-3 3 3M8 21h8"/></svg><span>Kaynak</span></button><button class="b" data-t="AYARLAR"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg><span>Ayarlar</span></button></div>
+<div class="ust"><button class="b guc" data-t="GUC" aria-label="Güç"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1 0 11.4 0"/></svg></button><button class="b" id="kaynakBtn" data-yalniz="lg vidaa" aria-label="Kaynak"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M12 9v8M9 12l3-3 3 3M8 21h8"/></svg><span>Kaynak</span></button><button class="b" data-t="KAYNAK" data-yalniz="adb androidtv smartcenter"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M12 9v8M9 12l3-3 3 3M8 21h8"/></svg><span>Kaynak</span></button><button class="b" data-t="AYARLAR"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg><span>Ayarlar</span></button></div>
 <div class="girisler gizli" id="girisler"></div>
 <div class="dpad">
   <button class="b y" data-t="YUKARI" data-tekrar aria-label="Yukarı"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
@@ -203,7 +239,7 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
   <button class="b sg" data-t="SAG" data-tekrar aria-label="Sağ"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
   <button class="b a" data-t="ASAGI" data-tekrar aria-label="Aşağı"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
 </div>
-<div class="uclu"><button class="b" data-t="GERI"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg><span>Geri</span></button><button class="b" data-t="ANA"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Ana</span></button><button class="b" data-t="CIKIS" data-yalniz="lg"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Çıkış</span></button><button class="b" data-t="MENU" data-yalniz="adb"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menü</span></button></div>
+<div class="uclu"><button class="b" data-t="GERI"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg><span>Geri</span></button><button class="b" data-t="ANA"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg><span>Ana</span></button><button class="b" data-t="CIKIS" data-yalniz="lg vidaa smartcenter"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg><span>Çıkış</span></button><button class="b" data-t="MENU" data-yalniz="adb androidtv"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menü</span></button></div>
 <div class="alt"><div class="dikey"><button class="b" data-t="SES+" data-tekrar aria-label="Ses aç"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button><small>SES</small><button class="b" data-t="SES-" data-tekrar aria-label="Ses kıs"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button></div><div class="orta3"><button class="b" data-t="SESSIZ"><svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m23 9-6 6M17 9l6 6"/></svg><span>Sessiz</span></button><button class="b" id="rakamBtn"><span class="r123">123</span><span>Rakamlar</span></button><button class="b" data-t="BILGI"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg><span>Bilgi</span></button></div><div class="dikey"><button class="b" data-t="KANAL+" data-tekrar><span>CH+</span></button><small>KANAL</small><button class="b" data-t="KANAL-" data-tekrar><span>CH−</span></button></div></div>
 <div class="rakam gizli" id="rakam">
   <button class="b" data-t="1">1</button><button class="b" data-t="2">2</button><button class="b" data-t="3">3</button>
@@ -211,23 +247,27 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
   <button class="b" data-t="7">7</button><button class="b" data-t="8">8</button><button class="b" data-t="9">9</button>
   <button class="b" data-t="YILDIZ" data-yalniz="lg">✱</button><button class="b" data-t="0">0</button><button class="b" data-t="TAMAM">OK</button>
 </div>
-<div class="medya5"><button class="b" data-t="GERI_SAR" aria-label="Geri sar"><svg viewBox="0 0 24 24"><path d="M11 19 2 12l9-7zM22 19l-9-7 9-7z"/></svg></button><button class="b" data-t="OYNAT" data-yalniz="lg" aria-label="Oynat"><svg viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></button><button class="b" data-t="DURAKLAT" data-yalniz="lg" aria-label="Duraklat"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button><button class="b" data-t="OYNAT_DURAKLAT" data-yalniz="adb" aria-label="Oynat/Duraklat"><svg viewBox="0 0 24 24"><path d="M5 4l9 8-9 8z"/><path d="M17 5v14M21 5v14"/></svg></button><button class="b" data-t="DURDUR" aria-label="Durdur"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button><button class="b" data-t="ILERI_SAR" aria-label="İleri sar"><svg viewBox="0 0 24 24"><path d="m13 19 9-7-9-7zM2 19l9-7-9-7z"/></svg></button></div>
-<div class="renkler" data-yalniz="lg">
+<div class="medya5"><button class="b" data-t="GERI_SAR" aria-label="Geri sar"><svg viewBox="0 0 24 24"><path d="M11 19 2 12l9-7zM22 19l-9-7 9-7z"/></svg></button><button class="b" data-t="OYNAT" data-yalniz="lg vidaa androidtv smartcenter" aria-label="Oynat"><svg viewBox="0 0 24 24"><path d="M6 4l12 8-12 8z"/></svg></button><button class="b" data-t="DURAKLAT" data-yalniz="lg vidaa androidtv" aria-label="Duraklat"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button><button class="b" data-t="OYNAT_DURAKLAT" data-yalniz="adb" aria-label="Oynat/Duraklat"><svg viewBox="0 0 24 24"><path d="M5 4l9 8-9 8z"/><path d="M17 5v14M21 5v14"/></svg></button><button class="b" data-t="DURDUR" aria-label="Durdur"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button><button class="b" data-t="ILERI_SAR" aria-label="İleri sar"><svg viewBox="0 0 24 24"><path d="m13 19 9-7-9-7zM2 19l9-7-9-7z"/></svg></button></div>
+<div class="renkler" data-yalniz="lg vidaa androidtv smartcenter">
   <button class="b" data-t="KIRMIZI" style="background:#c62f3a" aria-label="Kırmızı"></button>
   <button class="b" data-t="YESIL" style="background:#2e9a4f" aria-label="Yeşil"></button>
   <button class="b" data-t="SARI" style="background:#d6b02b" aria-label="Sarı"></button>
   <button class="b" data-t="MAVI" style="background:#2f62c6" aria-label="Mavi"></button>
 </div>
-<div class="ekler"><button class="b" data-t="REHBER"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg><span>Rehber</span></button><button class="b" data-t="SON"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Son</span></button><button class="b" data-t="ALTYAZI"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 15h4M13 15h4M7 11h10"/></svg><span>Altyazı</span></button><button class="b" data-t="SES_DILI"><svg viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c1 4 4 7 7 8M11 5c-1 4-4 7-7 8"/><path d="m13 21 4-9 4 9M14.5 18h5"/></svg><span>Ses dili</span></button><button class="b" data-t="ORAN" data-yalniz="lg"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9v-1h3M18 15v1h-3"/></svg><span>Oran</span></button><button class="b" data-t="LISTE" data-yalniz="lg"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>TV listesi</span></button><button class="b" data-t="CANLI"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M9 2l3 3 3-3"/></svg><span>Canlı yayın</span></button><button class="b" data-t="UYGULAMALAR"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><circle cx="17.5" cy="17.5" r="3.5"/></svg><span>Uygulamalar</span></button></div>
-<button class="b kanalBtn" id="kanallarBtn" data-yalniz="lg"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M9 2l3 3 3-3"/></svg>Kanal listesi</button>
-<div class="baslik">Uygulamalar <button class="tumu" id="tumUygBtn" data-yalniz="lg">Tümü ›</button></div>
-<div class="uyg" id="uyg"><button class="b" data-ac="canli"><i>📡</i><span class="uad">Web TV</span></button></div>
+<div class="ekler"><button class="b" data-t="REHBER" data-yalniz="lg adb androidtv vidaa"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg><span>Rehber</span></button><button class="b" data-t="SON" data-yalniz="lg adb androidtv"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Son</span></button><button class="b" data-t="ALTYAZI" data-yalniz="lg adb androidtv vidaa"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 15h4M13 15h4M7 11h10"/></svg><span>Altyazı</span></button><button class="b" data-t="SES_DILI" data-yalniz="lg adb androidtv"><svg viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c1 4 4 7 7 8M11 5c-1 4-4 7-7 8"/><path d="m13 21 4-9 4 9M14.5 18h5"/></svg><span>Ses dili</span></button><button class="b" data-t="ORAN" data-yalniz="lg"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9v-1h3M18 15v1h-3"/></svg><span>Oran</span></button><button class="b" data-t="LISTE" data-yalniz="lg"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>TV listesi</span></button><button class="b" data-t="CANLI" data-yalniz="lg adb androidtv"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M9 2l3 3 3-3"/></svg><span>Canlı yayın</span></button><button class="b" data-t="UYGULAMALAR" data-yalniz="lg adb androidtv"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><circle cx="17.5" cy="17.5" r="3.5"/></svg><span>Uygulamalar</span></button><button class="b" data-t="INTERNET" data-yalniz="smartcenter"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span>İnternet</span></button><button class="b" data-t="FAVORI" data-yalniz="smartcenter"><svg viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg><span>Favoriler</span></button></div>
+<button class="b kanalBtn" id="kanallarBtn" data-yalniz="lg androidtv vidaa smartcenter"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M9 2l3 3 3-3"/></svg>Kanal listesi</button>
+<div class="baslik">Uygulamalar <button class="tumu" id="tumUygBtn">Tümü ›</button></div>
+<div class="uyg" id="uyg"><button class="b" data-ac="canli" data-yalniz="lg adb"><i>📡</i><span class="uad">Web TV</span></button></div>
+<div data-yalniz="lg adb androidtv">
 <div class="yazi"><input id="metin" placeholder="Ekrana yazı gönder…" autocomplete="off"><button class="b" id="gonder">Gönder</button></div>
 <div class="yazi"><button class="b" data-t="SIL" style="flex:1">⌫ Sil</button><button class="b" data-t="ENTER" style="flex:1">↵ Enter</button></div>
 <p class="not" id="yaziNot"></p>
-<div class="baslik" style="margin-top:18px" data-yalniz="lg">Bağlantı aç</div>
-<div class="yazi" data-yalniz="lg"><input id="baglanti" type="url" inputmode="url" placeholder="YouTube ya da web bağlantısı yapıştır" autocomplete="off"><button class="b" id="baglantiAc">Aç</button></div>
-<p class="not" data-yalniz="lg">YouTube bağlantıları TV'deki YouTube'da, diğerleri TV tarayıcısında açılır. Telefondaki YouTube'da <b>Paylaş → Kumanda</b> de, video doğrudan TV'de açılsın.</p>
+</div>
+<div data-yalniz="lg adb androidtv smartcenter">
+<div class="baslik" style="margin-top:18px">Bağlantı aç</div>
+<div class="yazi"><input id="baglanti" type="url" inputmode="url" placeholder="YouTube ya da web bağlantısı yapıştır" autocomplete="off"><button class="b" id="baglantiAc">Aç</button></div>
+<p class="not" id="baglantiNot"></p>
+</div>
 </section>
 
 <section id="ped" class="gizli">
@@ -242,28 +282,32 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 </div>
 
 <div class="uyari mavi gizli" id="kurulum">
-  <b>Henüz cihaz eklenmedi.</b><br>Sağ üstteki ⚙ menüsünden projeksiyonunu ya da LG TV'ni ekle. "Ağda ara" ile adresleri otomatik bulabilirsin.
+  <b>Henüz cihaz eklenmedi.</b><br>Sağ üstteki ⚙ menüsünden LG ya da Toshiba TV'ni, projeksiyonunu ekle. "Ağda ara" ile TV'ler otomatik bulunur; birden fazla cihaz ekleyip üstteki düğmelerle aralarında geçebilirsin.
 </div>
 </div>
 
 <div class="ayar gizli" id="ayar">
   <div class="panel">
     <h2>Cihazlar</h2>
-    <p class="alt-yazi">Telefon, projeksiyon ve TV aynı Wi‑Fi'da olmalı. Boş bıraktığın cihaz kaldırılır.</p>
+    <p class="alt-yazi">Telefon ve cihazlar aynı Wi‑Fi'da olmalı. Birden fazla TV ve projeksiyon ekleyebilirsin.</p>
+    <div class="cihazListe" id="cihazListe"></div>
+    <div class="ayrac"></div>
     <div class="alan">
-      <label>📺 LG TV adresi</label><input id="tvAdres" inputmode="decimal" placeholder="192.168.1.50" autocomplete="off">
-      <small>TV: Ayarlar → Genel → Ağ → Wi‑Fi bağlantısı → gelişmiş ayarlar'da IP görünür.</small>
-      <div class="bulunan" id="tvBulunan"></div>
+      <label>➕ Cihaz ekle</label>
+      <select id="ekTur">
+        <option value="toshiba">📺 Toshiba TV (sistemi kendisi bulunur)</option>
+        <option value="lg">📺 LG TV</option>
+        <option value="adb">📽 Projeksiyon / Android (ADB)</option>
+        <option value="androidtv">📺 Google TV / Android TV (diğer markalar)</option>
+        <option value="vidaa">📺 VIDAA TV (Hisense, Toshiba)</option>
+        <option value="smartcenter">📺 Smart Center TV (Vestel, Toshiba)</option>
+      </select>
+      <input id="ekAdres" inputmode="decimal" placeholder="TV'nin adresi, ör. 192.168.1.50" autocomplete="off">
+      <input id="ekMac" placeholder="MAC adresi (isteğe bağlı: kapalı TV'yi açmak için)" autocomplete="off">
+      <small id="ekIpucu"></small>
     </div>
-    <div class="alan">
-      <label>TV MAC adresi (kapalı TV'yi açmak için, isteğe bağlı)</label><input id="tvMac" placeholder="a8:23:fe:12:34:56" autocomplete="off">
-      <small>TV'ye bir kez bağlanınca çoğu zaman kendiliğinden bulunur. TV'de "Wi‑Fi ile aç / Mobil ile TV'yi aç" ayarı açık olmalı.</small>
-    </div>
-    <div class="alan">
-      <label>📽 Projeksiyon adresi (ADB)</label><input id="projAdres" inputmode="decimal" placeholder="192.168.1.40:5555" autocomplete="off">
-      <div class="bulunan" id="projBulunan"></div>
-    </div>
-    <div class="satir"><button class="b" id="taraBtn">🔍 Ağda ara</button><button class="b ana" id="kaydetBtn">Kaydet ve bağlan</button></div>
+    <div class="satir"><button class="b" id="taraBtn">🔍 Ağda ara</button><button class="b ana" id="ekleBtn">Ekle ve bağlan</button></div>
+    <div class="bulunanListe" id="bulunanListe"></div>
     <div id="yukleBolum" class="gizli">
       <div class="ayrac"></div>
       <div class="alan" style="margin-bottom:6px"><label>📲 Uygulama olarak yükle</label><small style="margin-top:0">Ana ekrana ve uygulama listesine Kumanda simgesi eklenir, tam ekran açılır.</small></div>
@@ -307,6 +351,7 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
       <button class="aktif" data-f="hepsi">Tümü</button><button data-f="tv">TV</button><button data-f="radyo">Radyo</button>
     </div>
     <div class="kp-not gizli" id="kpNot"></div>
+    <div class="kp-arac gizli" id="kpArac"><button class="b" id="kpDuzenle">✎ Numaraları düzenle</button><button class="b gizli" id="kpOgren">⟳ TV'den öğren</button></div>
   </div>
   <div class="kp-liste" id="kpListe"></div>
 </div>
@@ -314,6 +359,14 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
   <div class="akisSayfa">
     <div class="as-bas"><span class="logo" id="asLogo"></span><h3 id="asAd"></h3><button class="b" id="asAc">Aç</button></div>
     <div class="as-liste" id="asListe"></div>
+  </div>
+</div>
+<div class="akisPerde gizli" id="noPerde">
+  <div class="akisSayfa noSayfa">
+    <h3 id="noBaslik"></h3><p id="noAciklama"></p>
+    <input id="noAd" placeholder="Kanal adı, ör. TRT 1" autocomplete="off">
+    <input id="noNo" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Numara" autocomplete="off">
+    <div class="satir"><button class="b tehlike gizli" id="noSil" style="background:#3a1c22;color:#ffb3bb">Kaldır</button><button class="b" id="noVazgec">Vazgeç</button><button class="b ana" id="noKaydet">Kaydet ve aç</button></div>
   </div>
 </div>
 <div class="akisPerde gizli" id="uygPerde">
@@ -342,7 +395,8 @@ function yaz(k,v){try{localStorage.setItem('kmd_'+k,v)}catch(e){}}
   try{ const b=JSON.parse(decodeURIComponent(m[1])); if(b.s&&b.k){ yaz('sunucu',b.s); yaz('anahtar',b.k); yaz('yeni_baglandi','1'); } }catch(e){}
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
-const SAYFA_SURUMU='2026-11-02-B';
+const SAYFA_SURUMU='2026-11-07-A';
+const TV_TURLERI=['lg','androidtv','vidaa','smartcenter'], TOSHIBA=['androidtv','vidaa','smartcenter'];
 const GUNCELLE_KOMUTU='curl -L --remote-name-all https://raw.githubusercontent.com/azataslan065-png/kumanda/main/{kumanda.py,index.html,manifest.webmanifest,sw.js,ikon-192.png,ikon-512.png,ikon-maskable-512.png} && python kumanda.py';
 const YEREL_SAYFA = location.protocol==='http:' && location.port==='8080';
 let SUNUCU = YEREL_SAYFA ? location.origin
@@ -416,6 +470,9 @@ function yaziNotGuncelle(){
   const n=$('#yaziNot'), c=aktif(); if(!n) return;
   n.style.color='';
   if(!c){ n.textContent=''; return; }
+  if(c.tur==='androidtv'){
+    if(yaziHata){ n.textContent='⚠ '+yaziHata; n.style.color='#ffb3bb'; return; }
+    n.textContent='Önce TV\'de bir yazı kutusu seç (ör. YouTube ya da Google arama), sonra gönder. Türkçe harfler olduğu gibi gider.'; return; }
   if(c.tur!=='lg'){ n.textContent='Türkçe harfler sadeleştirilir (ç→c, ş→s…).'; return; }
   if(yaziHata){ n.textContent='⚠ '+yaziHata; n.style.color='#ffb3bb'; return; }
   if(c.yazi_izni===false){ n.textContent='⚠ TV yazı gönderme iznini vermiyor. TV\'nin ekran klavyesini Dokunmatik sekmesinden kullanabilirsin.'; n.style.color='#ffb3bb'; return; }
@@ -456,24 +513,36 @@ ped.addEventListener('pointerup',e=>{if(!bas)return;const s=konum(e),ms=Date.now
   bas=null;sonNokta=null});
 
 // ── cihaz seçimi ve durum ──
-const AD_DURUM={bagli:'Bağlı',baglaniyor:'Bağlanıyor…',onay:'TV onayı bekleniyor',kapali:'Kapalı',hata:'Hata'};
+const AD_DURUM={bagli:'Bağlı',baglaniyor:'Bağlanıyor…',onay:'TV onayı bekleniyor',kod:'Kod bekleniyor',kapali:'Kapalı',hata:'Hata'};
+const ikonu=c=>c.tur==='adb'?'📽':'📺';
+const noktaSinifi=c=>c.durum==='bagli'?'ok':(c.durum==='baglaniyor'||c.durum==='onay'||c.durum==='kod')?'bekle':'';
 function cihazlariCiz(){
   const k=$('#cihazlar'); k.innerHTML='';
   if(cihazlar.length<2){k.classList.add('gizli')} else k.classList.remove('gizli');
   cihazlar.forEach(c=>{const b=document.createElement('button');b.className=c.id===secili?'aktif':'';
-    const cls=c.durum==='bagli'?'ok':(c.durum==='baglaniyor'||c.durum==='onay')?'bekle':'';
-    b.innerHTML='<span class="mini '+cls+'"></span>'+(c.tur==='lg'?'📺 ':'📽 ')+'<span></span>';b.lastChild.textContent=c.ad;
-    b.onclick=()=>{secili=c.id;yaz('secili',c.id);titre();$('#girisler').classList.add('gizli');arayuz()};k.appendChild(b)});
+    b.innerHTML='<span class="mini '+noktaSinifi(c)+'"></span>'+ikonu(c)+' <span></span>';b.lastChild.textContent=c.ad;
+    b.onclick=()=>{ if(secili!==c.id){ secili=c.id;yaz('secili',c.id);titre();$('#girisler').classList.add('gizli');uygCihazDegisti();arayuz(); } };k.appendChild(b)});
+  const a=k.querySelector('.aktif'); if(a && cihazlariCiz.son!==secili){ cihazlariCiz.son=secili; a.scrollIntoView({block:'nearest',inline:'nearest'}); }
 }
 function arayuz(){
-  if(!aktif() && cihazlar.length) { secili=cihazlar[0].id; yaz('secili',secili); }
+  if(!aktif() && cihazlar.length) { secili=cihazlar[0].id; yaz('secili',secili); uygCihazDegisti(); }
+  else if(aktif() && arayuz.ilkCihaz!==secili){ uygCihazDegisti(); }
+  arayuz.ilkCihaz=secili;
   const c=aktif(), tur=c?c.tur:'adb';
-  $$('[data-yalniz]').forEach(el=>el.classList.toggle('gizli',el.dataset.yalniz!==tur));
-  $('.medya5').style.gridTemplateColumns = tur==='lg' ? 'repeat(5,1fr)' : 'repeat(4,1fr)';
-  if(tur==='lg' && c && c.durum==='bagli' && uygCihaz!==c.id) uygulamalariYukle();
-  if(PAYLASILAN && !arayuz.paylasimYapildi && tur==='lg' && c && c.durum==='bagli'){ arayuz.paylasimYapildi=true; baglantiAc(PAYLASILAN); }
+  $$('[data-yalniz]').forEach(el=>el.classList.toggle('gizli',!el.dataset.yalniz.split(' ').includes(tur)));
+  if(!['lg','adb'].includes(tur) && !$('#ped').classList.contains('gizli')) $('.sekmeler [data-s="kumanda"]').click();
+  $('.medya5').style.gridTemplateColumns = 'repeat('+$$('.medya5 .b').filter(x=>!x.classList.contains('gizli')).length+',1fr)';
+  $('#baglantiNot').innerHTML = {lg:'YouTube bağlantıları TV\'deki YouTube\'da, diğerleri TV tarayıcısında açılır.', adb:'Bağlantı cihazdaki uygun uygulamada açılır.',
+    androidtv:'YouTube bağlantıları TV\'deki YouTube\'da açılır.', smartcenter:'Bu TV\'de yalnızca YouTube bağlantıları açılabiliyor.'}[tur]||'';
+  if(tur!=='adb') $('#baglantiNot').innerHTML+=' Telefondaki YouTube\'da <b>Paylaş → Kumanda</b> de, video doğrudan TV\'de açılsın.';
+  const hazir = c && c.durum==='bagli';
+  if(TV_TURLERI.includes(tur) && hazir && uygCihaz!==c.id) uygulamalariYukle();
+  const baglantili=['lg','androidtv','smartcenter'];
+  if(PAYLASILAN && !arayuz.paylasimYapildi && baglantili.includes(tur) && hazir){ arayuz.paylasimYapildi=true; baglantiAc(PAYLASILAN); }
   else if(PAYLASILAN && !arayuz.paylasimYapildi && !arayuz.paylasimBildirildi){ arayuz.paylasimBildirildi=true; bildir('TV\'ye bağlanınca paylaşılan video açılacak'); }
-  if(ACILIS==='kanallar' && !arayuz.kisayolYapildi && tur==='lg' && c && c.durum==='bagli'){ arayuz.kisayolYapildi=true; try{ history.replaceState(null,'',location.pathname); }catch(e){} kanalPanelAc(); }
+  if(ACILIS==='kanallar' && !arayuz.kisayolYapildi && TV_TURLERI.includes(tur) && hazir){ arayuz.kisayolYapildi=true; try{ history.replaceState(null,'',location.pathname); }catch(e){} kanalPanelAc(); }
+  eslesmeCiz(c);
+  if(kanalElle && !$('#kanalPanel').classList.contains('gizli')) ogrenmeCiz();
   uygulamalariCiz();
   const kurulumGerek = kopruVar===true && !cihazlar.length;
   $('#kurulum').classList.toggle('gizli',!kurulumGerek);
@@ -500,17 +569,18 @@ function arayuz(){
       u.innerHTML='Köprüye ulaşılamıyor.<br>1) Termux\'ta <code>python kumanda.py</code> açık mı, telefon evdeki Wi‑Fi\'da mı?<br>2) Chrome <b>yerel ağdaki cihazlara erişim</b> izni sorarsa <b>İzin ver</b>. Daha önce engellediysen: adres çubuğundaki simge → <b>İzinler</b> → <b>Yerel ağ</b> → <b>İzin ver</b>.<br>3) Telefonun Wi‑Fi adresi değişmiş olabilir: yerel kumanda → <b>⚙</b> → <b>GitHub sayfasını bağla</b>.'+yerel;
     } else {
       $('#durumYazi').textContent='Köprü kapalı';
-      u.className='uyari kirmizi'; u.innerHTML='Köprüye ulaşılamıyor. Termux\'ta <code>python kumanda.py</code> çalışıyor olmalı.';
+      u.className='uyari kirmizi'; u.innerHTML='Köprüye ulaşılamıyor: Termux\'taki köprü çalışmıyor.<br>1) Termux\'u aç. Komut satırı boşsa şunu yaz: <code>python kumanda.py</code><br>2) Android Termux\'u arka planda kapatmasın diye: bildirim çubuğundaki Termux bildiriminde <b>Acquire wakelock</b>\'a bas, ayrıca Ayarlar → Uygulamalar → Termux → Pil → <b>Kısıtlanmamış</b> seç.';
     }
     return; }
   if(kopruVar==='eski'){ $('#durumYazi').textContent='Köprü eski';
     u.className='uyari sari'; u.innerHTML='Termux\'taki köprü eski sürüm. Köprüyü Ctrl+C ile durdurup şunu çalıştır:<br><code>'+GUNCELLE_KOMUTU+'</code>'; return; }
   if(!c){ $('#durumYazi').textContent='Cihaz yok'; return; }
-  if(kopruSurum && kopruSurum<6){ u.className='uyari sari'; u.innerHTML='<b>Köprü eski sürüm.</b> Tüm tuşların çalışması için Termux\'ta köprüyü Ctrl+C ile durdurup şunu çalıştır:<br><code>'+GUNCELLE_KOMUTU+'</code>'; }
+  if(kopruSurum && kopruSurum<9){ u.className='uyari sari'; u.innerHTML='<b>Köprü eski sürüm.</b> Toshiba TV ve birden fazla cihaz için Termux\'ta köprüyü Ctrl+C ile durdurup şunu çalıştır:<br><code>'+GUNCELLE_KOMUTU+'</code>'; }
   $('#durumYazi').textContent=AD_DURUM[c.durum]||c.durum;
-  if(c.durum==='bagli') d.classList.add('ok'); else if(c.durum==='baglaniyor'||c.durum==='onay') d.classList.add('bekle');
+  if(c.durum==='bagli') d.classList.add('ok'); else if(c.durum==='baglaniyor'||c.durum==='onay'||c.durum==='kod') d.classList.add('bekle');
   if(c.durum==='onay'){ u.className='uyari sari'; u.innerHTML='<b>TV ekranına bak.</b> Çıkan izin isteğini TV\'nin kendi kumandasıyla <b>Kabul et</b>. Bu yalnızca ilk seferde sorulur.'; }
   else if(c.tur==='adb' && !adbVar){ u.className='uyari kirmizi'; u.innerHTML='Projeksiyon için ADB gerekli. Termux\'ta: <code>pkg install android-tools</code>'; }
+  else if(c.durum==='kod'){ /* eşleşme kutusu gösteriliyor */ }
   else if(c.durum!=='bagli' && c.mesaj){ u.className='uyari '+(c.durum==='hata'?'kirmizi':'mavi'); u.textContent=c.mesaj; }
 }
 async function durum(){
@@ -526,10 +596,56 @@ async function durum(){
 }
 $('#durum').onclick=async()=>{ if(!secili){ayarAc();return} $('#durumYazi').textContent='Bağlanıyor…'; await post('/baglan',{c:secili}); setTimeout(durum,600) };
 
-// ── ayarlar ──
+// ── eşleşme kodu (Toshiba Google TV / VIDAA) ──
+function eslesmeCiz(c){
+  const k=$('#eslesme'), kod=c&&c.durum==='kod'&&c.kod;
+  k.classList.toggle('gizli',!kod); if(!kod) return;
+  $('#eslesmeYazi').textContent=(c.mesaj||'TV ekranında çıkan kodu yaz')+'. Kod birkaç dakika geçerli.';
+  const i=$('#kodGir'); i.maxLength=kod.uzunluk; i.placeholder='•'.repeat(kod.uzunluk);
+  i.inputMode=kod.harf?'text':'numeric'; i.autocapitalize=kod.harf?'characters':'off';
+}
+async function kodGonder(){
+  const i=$('#kodGir'), v=i.value.trim(); if(!v||!secili) return; titre();
+  const b=$('#kodBtn'); b.disabled=true; b.textContent='…';
+  const r=await post('/eslestir',{c:secili,kod:v}); b.disabled=false; b.textContent='Eşleş';
+  if(r.ok){ i.value=''; bildir('Eşleşti ✓ Bir daha kod sorulmaz'); setTimeout(durum,700); }
+  else bildir(r.hata||(r.ag?'Köprüye ulaşılamadı':'Kod kabul edilmedi'));
+}
+$('#kodBtn').onclick=kodGonder;
+$('#yeniKod').onclick=async e=>{ e.preventDefault(); titre(); await post('/baglan',{c:secili}); bildir('TV\'de yeni kod çıkacak'); setTimeout(durum,1500); };
+$('#kodGir').addEventListener('keydown',e=>{ if(e.key==='Enter') kodGonder(); });
+$('#kodGir').addEventListener('input',e=>{ const i=e.target; if(i.inputMode==='numeric') i.value=i.value.replace(/\D/g,''); else i.value=i.value.toUpperCase().replace(/[^0-9A-F]/g,''); });
+
+// ── ayarlar: cihaz listesi ──
+const EK_IPUCU={
+  toshiba:'TV\'nin adresi: TV\'de Ayarlar → Ağ → Ağ bilgisi. Toshiba\'nın Google TV, VIDAA ya da Smart Center olduğu kendiliğinden anlaşılır. İlk bağlantıda TV ekranında bir kod çıkabilir.',
+  lg:'TV: Ayarlar → Genel → Ağ → Wi‑Fi bağlantısı → gelişmiş ayarlar\'da IP görünür. İlk bağlantıda TV\'de çıkan izni kabul et.',
+  adb:'Projeksiyonda Geliştirici seçenekleri → ADB hata ayıklama (ağ) açık olmalı. Termux\'ta: pkg install android-tools',
+  androidtv:'TV\'de çıkan 6 haneli kodla eşleşir (Google TV uygulamasıyla aynı yol).',
+  vidaa:'TV\'de Ayarlar → Ağ → "Mobil cihazla kontrol" açık olmalı. İlk bağlantıda TV\'de 4 haneli kod çıkar.',
+  smartcenter:'Eski Vestel altyapılı TV\'ler. Kanal listesi TV\'den öğrenilebilir.'};
+function ipucuYaz(){ const t=$('#ekTur').value; $('#ekIpucu').textContent=EK_IPUCU[t]||''; $('#ekMac').classList.toggle('gizli',t==='adb'); $('#ekAdres').placeholder=t==='adb'?'Adres, ör. 192.168.1.40:5555':'TV\'nin adresi, ör. 192.168.1.50'; }
+$('#ekTur').onchange=ipucuYaz;
+function cihazListesiCiz(){
+  const k=$('#cihazListe'); k.innerHTML='';
+  if(!cihazlar.length){ k.innerHTML='<p class="not" style="margin:0">Henüz cihaz yok. Aşağıdan ekle ya da "Ağda ara"ya bas.</p>'; return; }
+  cihazlar.forEach(c=>{
+    const s=document.createElement('div'); s.className='cRow';
+    const nk=document.createElement('span'); nk.className='mini '+noktaSinifi(c);
+    const ic=document.createElement('span'); ic.className='ci'; ic.textContent=ikonu(c);
+    const cb=document.createElement('div'); cb.className='cb'; const b=document.createElement('b'); b.textContent=c.ad;
+    const sm=document.createElement('small'); sm.textContent=[c.sistem||c.tur, c.adres, AD_DURUM[c.durum]||c.durum].filter(Boolean).join(' · '); cb.append(b,sm);
+    const ad=document.createElement('button'); ad.className='b kucuk'; ad.textContent='Ad';
+    ad.onclick=async()=>{ const y=prompt('Cihazın adı', c.ad); if(!y||!y.trim()||y.trim()===c.ad) return; const r=await post('/ad',{c:c.id,ad:y.trim()}); if(r.ok){ c.ad=y.trim(); cihazListesiCiz(); cihazlariCiz(); } };
+    const sil=document.createElement('button'); sil.className='b kucuk tehlike'; sil.textContent='Sil';
+    sil.onclick=async()=>{ if(!sil.dataset.emin){ sil.dataset.emin=1; sil.textContent='Emin misin?'; setTimeout(()=>{ delete sil.dataset.emin; sil.textContent='Sil'; },3000); return; }
+      const r=await post('/sil',{c:c.id}); if(r.ok){ cihazlar=cihazlar.filter(x=>x.id!==c.id); if(secili===c.id){ secili=cihazlar[0]?.id||null; yaz('secili',secili||''); } cihazListesiCiz(); arayuz(); bildir(c.ad+' silindi'); } };
+    s.append(nk,ic,cb,ad,sil); k.appendChild(s);
+  });
+}
 function ayarAc(){
-  $('#tvAdres').value=ayarlar.tv||''; $('#tvMac').value=ayarlar.mac||''; $('#projAdres').value=ayarlar.projeksiyon||'';
-  $('#sunucuGir').value=SUNUCU; $('#tvBulunan').innerHTML=''; $('#projBulunan').innerHTML='';
+  cihazListesiCiz(); ipucuYaz();
+  $('#sunucuGir').value=SUNUCU; $('#bulunanListe').innerHTML='';
   $('#githubBolum').classList.toggle('gizli', !(YEREL_SAYFA && githubBilgi));
   $('#surumYazi').textContent='Kumanda sürümü '+SAYFA_SURUMU+(kopruSurum?' · köprü '+kopruSurum:'');
   $('#taniBolum').classList.toggle('gizli', !aktif()); taniBilgiYaz();
@@ -543,27 +659,43 @@ $('#githubBtn').onclick=()=>{
 $('#carkBtn').onclick=ayarAc;
 $('#kapatBtn').onclick=()=>{ const s=$('#sunucuGir').value.trim().replace(/\/+$/,''); if(s&&s!==SUNUCU){SUNUCU=s;yaz('sunucu',s);durum()} $('#ayar').classList.add('gizli') };
 $('#ayar').addEventListener('click',e=>{ if(e.target.id==='ayar') $('#kapatBtn').click() });
-$('#taraBtn').onclick=async()=>{
-  const b=$('#taraBtn'); b.textContent='Aranıyor…'; b.disabled=true;
-  try{ const r=await getj('/tara');
-    const doldur=(liste,kutu,input)=>{ kutu.innerHTML=''; if(!liste.length){kutu.innerHTML='<small>Bulunamadı</small>';return}
-      liste.forEach(a=>{const x=document.createElement('button');x.textContent=a;x.onclick=()=>{input.value=a};kutu.appendChild(x)}); };
-    if(r.hata){ $('#tvBulunan').innerHTML=''; $('#projBulunan').innerHTML='';
-      const u=document.createElement('div'); u.className='uyari sari'; u.style.margin='8px 0 0'; u.textContent=r.hata; $('#tvBulunan').appendChild(u);
-    } else {
-    doldur(r.lg||[],$('#tvBulunan'),$('#tvAdres')); doldur(r.adb||[],$('#projBulunan'),$('#projAdres')); }
-    if((r.lg||[]).length===1 && !$('#tvAdres').value) $('#tvAdres').value=r.lg[0];
-    if((r.adb||[]).length===1 && !$('#projAdres').value) $('#projAdres').value=r.adb[0];
-  }catch(e){ bildir('Köprüye ulaşılamadı') }
-  b.textContent='🔍 Ağda ara'; b.disabled=false;
-};
-$('#kaydetBtn').onclick=async()=>{
+async function cihazEkle(tur,adres,ad,mac,dugme){
+  if(kopruSurum && kopruSurum<9){ bildir('Önce Termux\'taki köprüyü güncelle'); return; }
+  if(!adres){ bildir('Adresi yaz ya da "Ağda ara"ya bas'); $('#ekAdres').focus(); return; }
   const s=$('#sunucuGir').value.trim().replace(/\/+$/,''); if(s&&s!==SUNUCU){SUNUCU=s;yaz('sunucu',s)}
-  const r=await post('/ayarla',{tv:$('#tvAdres').value.trim(),mac:$('#tvMac').value.trim(),projeksiyon:$('#projAdres').value.trim()});
+  const eski=dugme&&dugme.textContent; if(dugme){ dugme.disabled=true; dugme.textContent=tur==='toshiba'?'Sistem bulunuyor…':'Ekleniyor…'; }
+  const r=await post('/ekle',{tur,adres,ad:ad||'',mac:mac||''});
+  if(dugme){ dugme.disabled=false; dugme.textContent=eski; }
   if(r.ag){ bildir('Köprüye ulaşılamadı'); return; }
-  if(!r.ok){ bildir(r.hata||'Kaydedilemedi'); return; }
-  if($('#tvAdres').value.trim()){ secili='tv'; yaz('secili','tv'); } else if($('#projAdres').value.trim()){ secili='projeksiyon'; yaz('secili','projeksiyon'); }
-  $('#ayar').classList.add('gizli'); bildir('Kaydedildi, bağlanılıyor…'); setTimeout(durum,500);
+  if(!r.ok){ bildir(r.hata||'Eklenemedi'); return; }
+  secili=r.id; yaz('secili',r.id); uygCihazDegisti(); $('#ekAdres').value=''; $('#ekMac').value='';
+  $('#ayar').classList.add('gizli'); bildir('Eklendi, bağlanılıyor…'); setTimeout(durum,500);
+}
+$('#ekleBtn').onclick=()=>cihazEkle($('#ekTur').value,$('#ekAdres').value.trim(),'',$('#ekMac').value.trim(),$('#ekleBtn'));
+$('#taraBtn').onclick=async()=>{
+  const b=$('#taraBtn'), k=$('#bulunanListe'); b.textContent='Aranıyor…'; b.disabled=true; k.innerHTML='<p class="not" style="margin:0">Ağ taranıyor (10–20 sn)…</p>';
+  try{ const r=await getj('/tara'); k.innerHTML='';
+    if(r.hata){ const u=document.createElement('div'); u.className='uyari sari'; u.style.margin='0'; u.textContent=r.hata; k.appendChild(u); }
+    else {
+      // eski köprü yalnızca adres listesi döndürür
+      const liste=r.cihazlar||[...(r.lg||[]).map(a=>({adres:a,tur:'lg',ad:'LG TV',sistem:'LG webOS'})),...(r.adb||[]).map(a=>({adres:a,tur:'adb',ad:'Projeksiyon',sistem:'Android (ADB)'}))];
+      if(!liste.length) k.innerHTML='<p class="not" style="margin:0">Cihaz bulunamadı. TV açık ve aynı Wi‑Fi\'da mı? Adresi elle de yazabilirsin.</p>';
+      liste.forEach(x=>{
+        const s=document.createElement('div'); s.className='cRow';
+        const ic=document.createElement('span'); ic.className='ci'; ic.textContent=x.tur==='adb'?'📽':'📺';
+        const cb=document.createElement('div'); cb.className='cb'; const bb=document.createElement('b'); bb.textContent=x.ad+(x.tv_adi&&x.tv_adi!==x.ad?' · '+x.tv_adi:'');
+        const sm=document.createElement('small'); sm.textContent=[x.sistem, x.adres, x.model].filter(Boolean).join(' · '); cb.append(bb,sm);
+        const ekli=cihazlar.some(c=>c.tur===x.tur&&c.adres===x.adres);
+        const e=document.createElement('button'); e.className='b kucuk'+(ekli?'':' ana'); e.textContent=ekli?'Ekli ✓':'Ekle'; e.disabled=ekli;
+        if(!ekli) e.style.background='var(--vurgu)';
+        // Aynı adda cihaz varsa TV'nin kendi adı kullanılır (ör. "Yatak odası")
+        const ad=(cihazlar.some(c=>c.ad===x.ad)&&x.tv_adi) ? x.tv_adi.slice(0,30) : (x.ad==='TV'?'':x.ad);
+        e.onclick=()=>cihazEkle(x.tur,x.adres,ad,'',e);
+        s.append(ic,cb,e); k.appendChild(s);
+      });
+    }
+  }catch(e){ k.innerHTML=''; bildir('Köprüye ulaşılamadı') }
+  b.textContent='🔍 Ağda ara'; b.disabled=false;
 };
 
 // ── kanal listesi ──
@@ -579,12 +711,18 @@ function harfRozet(ad){ const p=String(ad).replace(/\b(HD|FHD|UHD|SD)\b/gi,'').t
   let t = p.length>1 ? (p[0][0]+p[1][0]) : ((p[0]||'?').length<=4 ? p[0] : p[0].slice(0,3)); if(/^\d/.test(p[1]||'')) t=p[0].slice(0,3)+p[1]; return t.toUpperCase().slice(0,4); }
 function renk(ad){ let h=0; for(const c of String(ad)) h=(h*31+c.charCodeAt(0))>>>0; return 'hsl('+(h%360)+' 55% 42%)'; }
 
-let kanalListe=[], simdiki='', kpFiltre='hepsi', kpYukleniyor=false;
-try{ kanalListe=JSON.parse(oku('kanallar','[]'))||[]; }catch(e){ kanalListe=[]; }
+let kanalListe=[], simdiki='', kpFiltre='hepsi', kpYukleniyor=false, kanalElle=false, kpDuzenleme=false, ogrenmeVardi=false;
+// Kanal ve uygulama listeleri her cihaz için ayrı saklanır (ilk LG TV eski anahtarları kullanır)
+const hafizaAnahtari=(t,id)=> id==='tv' ? {k:'kanallar',u:'uygulamalar'}[t] : (t==='k'?'kanallar_':'uyg_')+id;
+function uygCihazDegisti(){
+  try{ kanalListe=JSON.parse(oku(hafizaAnahtari('k',secili),'[]'))||[]; }catch(e){ kanalListe=[]; }
+  try{ uygListe=JSON.parse(oku(hafizaAnahtari('u',secili),'[]'))||[]; }catch(e){ uygListe=[]; }
+  uygCihaz=null; simdiki=''; kanalElle=TOSHIBA.includes(aktif()?.tur); kpDuzenleme=false;
+}
 
 function kanalSatiri(k){
-  const b=document.createElement('button'); b.className='kanal'+(k.id===simdiki?' simdi':''); b.dataset.id=k.id;
-  const no=document.createElement('span'); no.className='no'; no.textContent=k.no||'';
+  const b=document.createElement('button'); b.className='kanal'+(k.id===simdiki?' simdi':'')+(kpDuzenleme?' duzen':''); b.dataset.id=k.id;
+  const no=document.createElement('span'); no.className='no'+(kanalElle&&!k.no?' bos':''); no.textContent=k.no||(kanalElle?'—':'');
   const lg=document.createElement('span'); lg.className='logo';
   const url=k.logo||logoBul(k.ad);
   const harf=()=>{ lg.className='logo harf'; lg.style.background=renk(k.ad); lg.textContent=harfRozet(k.ad); };
@@ -605,8 +743,74 @@ function kanalSatiri(k){
   let uz; b.addEventListener('pointerdown',()=>{ uz=setTimeout(()=>{ b._uzun=true; if((k.akis||[]).length){ titre(); akisAc(k); } },550); });
   ['pointerup','pointerleave','pointercancel'].forEach(t=>b.addEventListener(t,()=>clearTimeout(uz)));
   b.addEventListener('contextmenu',e=>e.preventDefault());
-  b.onclick=()=>{ if(b._uzun){ b._uzun=false; return; } kanalAc(k); };
+  b.onclick=()=>{ if(b._uzun){ b._uzun=false; return; } if(kanalElle && (kpDuzenleme || !k.no)) numaraSor(k); else kanalAc(k); };
   return b;
+}
+function ozelSatir(sinif, logo, baslik, alt, tikla){
+  const b=document.createElement('button'); b.className='kanal '+sinif;
+  const no=document.createElement('span'); no.className='no';
+  const lg=document.createElement('span'); lg.className='logo'; lg.textContent=logo;
+  const ad=document.createElement('span'); ad.className='ad'; ad.textContent=baslik;
+  if(alt){ const s=document.createElement('small'); s.textContent=alt; ad.appendChild(s); }
+  b.append(no,lg,ad); b.onclick=tikla; return b;
+}
+// ── Toshiba: kanal numarası sor / düzenle ──
+let noKanal=null;
+function numaraSor(k){
+  titre(); noKanal=k||{yeni:true};
+  const yeni=!k;
+  $('#noBaslik').textContent = yeni ? 'Kanal ekle' : k.ad;
+  $('#noAciklama').textContent = yeni ? 'Kanalın adını ve TV\'deki numarasını yaz.' :
+    'Bu kanal TV\'de kaçıncı sırada? TV\'nin kendi kanal listesine bakıp numarasını yaz; bir kez girmen yeter.';
+  $('#noAd').classList.toggle('gizli',!yeni); $('#noAd').value='';
+  $('#noNo').value = (k&&k.no)||'';
+  $('#noSil').classList.toggle('gizli', yeni || !kpDuzenleme);
+  $('#noKaydet').textContent = (yeni||kpDuzenleme) ? 'Kaydet' : 'Kaydet ve aç';
+  $('#noPerde').classList.remove('gizli');
+  setTimeout(()=>(yeni?$('#noAd'):$('#noNo')).focus(),60);
+}
+function noKapat(){ $('#noPerde').classList.add('gizli'); $('#noNo').blur(); $('#noAd').blur(); noKanal=null; }
+function kanalSirala(){ kanalListe.sort((a,b)=> (a.no&&b.no) ? (+a.no - +b.no) : a.no ? -1 : b.no ? 1 : 0 ); }
+async function noKaydet(sil){
+  const k=noKanal; if(!k) return;
+  const ad = k.yeni ? $('#noAd').value.trim() : k.ad, no=$('#noNo').value.replace(/\D/g,'');
+  if(!ad){ bildir('Kanal adını yaz'); return; }
+  if(!sil && !no && !kpDuzenleme && !k.yeni){ bildir('Numarayı yaz'); return; }
+  const r=await post('/kanal_no',{c:secili,ad,no,sil:sil?'1':''});
+  if(!r.ok){ bildir(r.hata||(r.ag?'Köprüye ulaşılamadı':'Kaydedilemedi')); return; }
+  const id = k.id || ('m:'+logoAnahtar(ad));
+  if(no) kanalListe.forEach(x=>{ if(x.no===no && x.id!==id) x.no=''; });
+  let x=kanalListe.find(x=>x.id===id);
+  if(sil) kanalListe=kanalListe.filter(y=>y.id!==id);
+  else if(x) x.no=no; else { x={id,ad,no,akis:[],logo:'',radyo:false}; kanalListe.push(x); }
+  kanalSirala(); yaz(hafizaAnahtari('k',secili),JSON.stringify(kanalListe));
+  const ac = !sil && !kpDuzenleme && !k.yeni && no;
+  noKapat(); kanallariCiz();
+  if(sil) bildir(ad+' listeden kaldırıldı'); else if(!ac) bildir(no ? ad+' → '+no+' kaydedildi' : ad+' eklendi');
+  if(ac) kanalAc(x);
+}
+$('#noKaydet').onclick=()=>noKaydet(false);
+$('#noSil').onclick=()=>noKaydet(true);
+$('#noVazgec').onclick=noKapat;
+$('#noNo').addEventListener('keydown',e=>{ if(e.key==='Enter') noKaydet(false); });
+$('#noPerde').addEventListener('click',e=>{ if(e.target.id==='noPerde') noKapat(); });
+$('#kpDuzenle').onclick=()=>{ titre(); kpDuzenleme=!kpDuzenleme; $('#kpDuzenle').classList.toggle('aktif',kpDuzenleme);
+  $('#kpDuzenle').textContent=kpDuzenleme?'✓ Bitti':'✎ Numaraları düzenle'; kanallariCiz(); };
+$('#kpOgren').onclick=async()=>{
+  titre(); const b=$('#kpOgren'), c=aktif(), o=c&&c.ogrenme;
+  if(o&&o.calisiyor){ await post('/kanal_ogren',{c:secili,iptal:'1'}); bildir('Durduruluyor…'); return; }
+  if(!b.dataset.emin){ b.dataset.emin=1; b.textContent='Başlat? TV kanalları ~3 dk dolaşır'; setTimeout(()=>{ delete b.dataset.emin; ogrenmeCiz(); },4000); return; }
+  delete b.dataset.emin;
+  const r=await post('/kanal_ogren',{c:secili,adet:60});
+  if(r.ok){ bildir('TV kanalları tek tek açılıp adları okunuyor…'); ogrenmeVardi=true; setTimeout(durum,800); } else bildir(r.hata||'Başlatılamadı');
+};
+function ogrenmeCiz(){
+  const c=aktif(), o=c&&c.ogrenme, b=$('#kpOgren'), not=$('#kpNot');
+  if(!kanalElle || b.dataset.emin) return;
+  if(o&&o.calisiyor){ ogrenmeVardi=true; b.textContent='■ Durdur'; b.classList.add('aktif');
+    not.textContent='Kanallar TV\'den öğreniliyor: '+o.no+' / '+o.adet+' · '+o.bulunan+' kanal bulundu'; not.classList.remove('gizli'); return; }
+  b.textContent='⟳ TV\'den öğren'; b.classList.remove('aktif');
+  if(ogrenmeVardi){ ogrenmeVardi=false; not.classList.add('gizli'); bildir('Kanal listesi TV\'den öğrenildi ✓'); if(!$('#kanalPanel').classList.contains('gizli')) kanallariYukle(); }
 }
 // ── yayın akışı yardımcıları ──
 const simdiSn=()=>Date.now()/1000;
@@ -648,9 +852,13 @@ function kanallariCiz(){
     const {simdi:p,sonra:n}=simdiSonra(k); return (p&&sade(p[2]).includes(q)) || (n&&sade(n[2]).includes(q)); }); }
   $('#kpSayi').textContent = kanalListe.length ? (q? liste.length+' / '+kanalListe.length : kanalListe.length) : '';
   kutu.innerHTML='';
-  if(!kanalListe.length){ kutu.innerHTML = kpYukleniyor ? '<div class="kp-bos">Kanallar TV\'den alınıyor…</div>' : (kutu.dataset.hata||'<div class="kp-bos">Kanal bulunamadı.</div>'); return; }
-  if(!liste.length){ const d=document.createElement('div'); d.className='kp-bos'; d.append('"'); const b=document.createElement('b'); b.textContent=$('#kpAra').value.trim(); d.append(b,'" ile eşleşen kanal yok.'); kutu.appendChild(d); return; }
-  const parca=document.createDocumentFragment(); liste.forEach(k=>parca.appendChild(kanalSatiri(k))); kutu.appendChild(parca);
+  if(!kanalListe.length && !kanalElle){ kutu.innerHTML = kpYukleniyor ? '<div class="kp-bos">Kanallar TV\'den alınıyor…</div>' : (kutu.dataset.hata||'<div class="kp-bos">Kanal bulunamadı.</div>'); return; }
+  const parca=document.createDocumentFragment();
+  if(kanalElle && /^\d{1,4}$/.test(q)) parca.appendChild(ozelSatir('','#'+q, q+' numaralı kanala geç','',()=>kanalAc({id:'no:'+q,ad:'Kanal '+q,no:q})));
+  if(!liste.length && !parca.childNodes.length){ const d=document.createElement('div'); d.className='kp-bos'; d.append('"'); const b=document.createElement('b'); b.textContent=$('#kpAra').value.trim(); d.append(b,'" ile eşleşen kanal yok.'); kutu.appendChild(d); }
+  liste.forEach(k=>parca.appendChild(kanalSatiri(k)));
+  if(kanalElle) parca.appendChild(ozelSatir('ekle','+','Kanal ekle','Listede olmayan bir kanalı ekle',()=>numaraSor(null)));
+  kutu.appendChild(parca);
 }
 async function kanallariYukle(){
   if(kpYukleniyor) return; kpYukleniyor=true; const kutu=$('#kpListe'); delete kutu.dataset.hata;
@@ -658,11 +866,14 @@ async function kanallariYukle(){
   $('#kpYenile').style.opacity=.4;
   try{
     const r=await getj('/kanallar?c='+encodeURIComponent(secili));
-    if(r.kanallar && r.kanallar.length){ kanalListe=r.kanallar; simdiki=r.simdiki||''; yaz('kanallar',JSON.stringify(kanalListe));
+    kanalElle=!!r.elle; $('#kpArac').classList.toggle('gizli',!kanalElle); $('#kpOgren').classList.toggle('gizli',!(kanalElle&&r.ogren));
+    if(kanalElle && !kanalListe.some(k=>k.no) && !r.kanallar.some(k=>k.no)){ const n=$('#kpNot'); n.textContent='Bu TV kanal listesini ağdan vermiyor. Bir kanala dokun, TV\'deki numarasını bir kez yaz; sonra tek dokunuşla açılır.'+(r.ogren?' Ya da "TV\'den öğren" ile numaraları TV\'den al.':''); n.classList.remove('gizli'); }
+    if(r.kanallar && r.kanallar.length){ kanalListe=r.kanallar; simdiki=r.simdiki||''; yaz(hafizaAnahtari('k',secili),JSON.stringify(kanalListe));
       const a=r.akis||{}, not=$('#kpNot');
       if(a.yukleniyor && !a.hazir){ not.textContent='Yayın akışı indiriliyor…'; not.classList.remove('gizli'); clearTimeout(kanallariYukle.z); kanallariYukle.z=setTimeout(()=>{ if(!$('#kanalPanel').classList.contains('gizli')) kanallariYukle(); },5000); }
       else if(!a.hazir && a.hata){ not.textContent='Yayın akışı alınamadı.'; not.classList.remove('gizli'); }
-      else not.classList.add('gizli'); }
+      else if(!kanalElle || kanalListe.some(k=>k.no)) not.classList.add('gizli');
+      if(kanalElle) ogrenmeCiz(); }
     else if(r.hata){
       if(!kanalListe.length) kutu.dataset.hata='<div class="kp-bos"><b>Kanal listesi alınamadı.</b><br>'+r.hata.replace(/[<>&]/g,'')+'<br><br>TV\'de anten/uydu kanalları kurulu olmalı. TV yayınını açıp tekrar dene.</div>';
       else bildir('Liste güncellenemedi, kayıtlı liste gösteriliyor');
@@ -673,13 +884,15 @@ async function kanallariYukle(){
 async function kanalAc(k){
   titre();
   const r=await post('/kanal',{c:secili,id:k.id});
-  if(r.ok){ simdiki=k.id; bildir((k.no?k.no+' · ':'')+k.ad+' açıldı'); $('#kpAra').value=''; kanalPanelKapat(); return; }
+  if(r.ok){ simdiki=k.id; bildir((k.no?k.no+' · ':'')+k.ad+(kanalElle?' açılıyor':' açıldı')); $('#kpAra').value=''; kanalPanelKapat(); return; }
   sonuc(r);
   if(!r.mesaj && !r.hata) bildir('Kanal açılamadı');
 }
 function kanalPanelAc(){
   if(kopruSurum && kopruSurum<4){ bildir('Kanal listesi için Termux\'taki köprüyü güncelle'); return; }
   if(kopruSurum && kopruSurum<5) bildir('Yayın akışı için Termux\'taki köprüyü güncelle');
+  kanalElle=TOSHIBA.includes(aktif()?.tur); kpDuzenleme=false; $('#kpDuzenle').classList.remove('aktif'); $('#kpDuzenle').textContent='✎ Numaraları düzenle';
+  $('#kpArac').classList.toggle('gizli',!kanalElle); $('#kpNot').classList.add('gizli');
   $('#kanalPanel').classList.remove('gizli'); document.body.style.overflow='hidden';
   kanallariCiz(); kanallariYukle();
   try{ history.pushState({kanallar:1},''); }catch(e){}
@@ -690,7 +903,7 @@ function kanalPanelKapat(){
   try{ if(history.state&&history.state.kanallar) history.back(); }catch(e){}
 }
 setInterval(()=>{ if(!$('#kanalPanel').classList.contains('gizli') && $('#akisPerde').classList.contains('gizli')) kanallariCiz(); },60000);
-window.addEventListener('popstate',()=>{ if(!$('#akisPerde').classList.contains('gizli')){ akisKapat(); try{history.pushState({kanallar:1},'');}catch(e){} return; } if(!$('#kanalPanel').classList.contains('gizli')){ $('#kanalPanel').classList.add('gizli'); document.body.style.overflow=''; } });
+window.addEventListener('popstate',()=>{ if(!$('#noPerde').classList.contains('gizli')){ noKapat(); try{history.pushState({kanallar:1},'');}catch(e){} return; } if(!$('#akisPerde').classList.contains('gizli')){ akisKapat(); try{history.pushState({kanallar:1},'');}catch(e){} return; } if(!$('#kanalPanel').classList.contains('gizli')){ $('#kanalPanel').classList.add('gizli'); document.body.style.overflow=''; } });
 $('#kanallarBtn').onclick=()=>{ titre(); kanalPanelAc(); };
 $('#kpKapat').onclick=()=>{ akisKapat(); kanalPanelKapat(); };
 $('#kpYenile').onclick=()=>{ titre(); kanallariYukle(); };
@@ -703,7 +916,6 @@ $$('#kpFiltre button').forEach(b=>b.onclick=()=>{ kpFiltre=b.dataset.f; $$('#kpF
 const POPULER=['netflix','youtube.leanback.v4','amazon','com.disney.disneyplus-prod','com.webos.app.livetv','spotify-beehive','tr.com.exxen','com.blutv.webos','tabii','com.apple.appletv','com.webos.app.browser'];
 const YEDEK_UYG=[{id:'netflix',ad:'Netflix'},{id:'youtube.leanback.v4',ad:'YouTube'},{id:'amazon',ad:'Prime Video'},{id:'com.disney.disneyplus-prod',ad:'Disney+'},{id:'com.webos.app.livetv',ad:'TV yayını'}];
 let uygListe=[], uygCihaz=null;
-try{ uygListe=JSON.parse(oku('uygulamalar','[]'))||[]; }catch(e){ uygListe=[]; }
 function ikonUrl(id){ return SUNUCU+'/ikon?c='+encodeURIComponent(secili)+'&id='+encodeURIComponent(id)+(ANAHTAR?'&k='+encodeURIComponent(ANAHTAR):''); }
 function uygDugme(a){
   const b=document.createElement('button'); b.className='b'; b.dataset.uygId=a.id;
@@ -719,20 +931,21 @@ function uygDugme(a){
 let uygImza='';
 function uygulamalariCiz(zorla){
   const k=$('#uyg'); if(!k) return; const tur=aktif()?.tur||'adb';
+  $('#tumUygBtn').classList.toggle('gizli', !['lg','vidaa'].includes(tur) || uygListe.length<4);
   // Durum her 3 sn'de yenilenir; ızgara yalnızca liste ya da cihaz değişince yeniden çizilir (ikonlar titremesin)
   const imza=tur+'|'+secili+'|'+SUNUCU+'|'+uygListe.map(a=>a.id+':'+(a.renk||'')+':'+(a.ikon?1:0)).join(',');
   if(!zorla && imza===uygImza) return; uygImza=imza;
   [...k.querySelectorAll('[data-uyg-id]')].forEach(x=>x.remove());
-  $('#tumUygBtn').classList.toggle('gizli', tur!=='lg' || !uygListe.length);
-  if(tur!=='lg') return;
-  const kaynak = uygListe.length ? uygListe : YEDEK_UYG;
-  const sirali=[...kaynak].sort((a,b)=>{ const x=POPULER.indexOf(a.id), y=POPULER.indexOf(b.id); return (x<0?99:x)-(y<0?99:y); });
+  if(!TV_TURLERI.includes(tur)) return;
+  const kaynak = uygListe.length ? uygListe : (tur==='lg' ? YEDEK_UYG : []);
+  const sirali= tur==='lg' ? [...kaynak].sort((a,b)=>{ const x=POPULER.indexOf(a.id), y=POPULER.indexOf(b.id); return (x<0?99:x)-(y<0?99:y); }) : kaynak;
   sirali.slice(0,8).forEach(a=>k.appendChild(uygDugme(a)));
 }
 async function uygulamalariYukle(yenile){
-  const c=aktif(); if(!c||c.tur!=='lg') return; uygCihaz=c.id;
+  const c=aktif(); if(!c||!TV_TURLERI.includes(c.tur)) return; uygCihaz=c.id;
   try{ const r=await getj('/uygulamalar?c='+encodeURIComponent(c.id)+(yenile?'&yenile=1':''));
-    if(r.uygulamalar&&r.uygulamalar.length){ uygListe=r.uygulamalar; yaz('uygulamalar',JSON.stringify(uygListe)); }
+    if(secili!==c.id) return;
+    if(r.uygulamalar&&r.uygulamalar.length){ uygListe=r.uygulamalar; yaz(hafizaAnahtari('u',c.id),JSON.stringify(uygListe)); }
   }catch(e){}
   uygulamalariCiz();
 }
@@ -752,11 +965,12 @@ $('#uygAra').addEventListener('input',tumUygCiz);
 const TUS_ADLARI={GUC:'Güç',KAYNAK:'Kaynak',AYARLAR:'Ayarlar',YUKARI:'Yukarı',ASAGI:'Aşağı',SOL:'Sol',SAG:'Sağ',TAMAM:'OK',GERI:'Geri',ANA:'Ana ekran',CIKIS:'Çıkış',MENU:'Menü',
   'SES+':'Ses +','SES-':'Ses −',SESSIZ:'Sessiz','KANAL+':'Kanal +','KANAL-':'Kanal −',BILGI:'Bilgi',GERI_SAR:'Geri sar',OYNAT:'Oynat',DURAKLAT:'Duraklat',OYNAT_DURAKLAT:'Oynat/Duraklat',
   DURDUR:'Durdur',ILERI_SAR:'İleri sar',KIRMIZI:'Kırmızı',YESIL:'Yeşil',SARI:'Sarı',MAVI:'Mavi',REHBER:'Rehber',SON:'Son kullanılanlar',ALTYAZI:'Altyazı',SES_DILI:'Ses dili',
-  ORAN:'Görüntü oranı',LISTE:'TV listesi',CANLI:'Canlı yayın',UYGULAMALAR:'Uygulamalar',YILDIZ:'✱',SIL:'Sil',ENTER:'Enter',YAZI:'Yazı gönderme'};
+  ORAN:'Görüntü oranı',LISTE:'TV listesi',CANLI:'Canlı yayın',UYGULAMALAR:'Uygulamalar',YILDIZ:'✱',SIL:'Sil',ENTER:'Enter',YAZI:'Yazı gönderme',
+  INTERNET:'İnternet',FAVORI:'Favoriler',KANAL:'Kanal açma',GIRIS:'Kaynak seçme',ADRES:'Bağlantı açma'};
 function taniBilgiYaz(){
   const c=aktif(), b=(c&&c.bilgi)||{}, k=$('#taniBilgi'); if(!k) return;
   const satir=(e,v)=>v?'<div><span>'+e+':</span> '+String(v).replace(/[<>&]/g,'')+'</div>':'';
-  k.innerHTML = c ? (satir('Model',b.model||'—')+satir('webOS',b.webos||b.surum)+satir('Ürün',b.urun)+satir('Adres',c.adres)) : '';
+  k.innerHTML = c ? (satir('Sistem',c.sistem)+satir('TV adı',b.tv_adi)+satir('Marka',b.marka)+satir('Model',b.model||'—')+satir(c.tur==='lg'?'webOS':'Sürüm',b.webos||b.surum)+satir('Ürün',b.urun)+satir('Adres',c.adres)) : '';
 }
 async function taniAc(){
   $('#taniPerde').classList.remove('gizli'); const k=$('#taniListe'); k.innerHTML='<div class="kp-bos">Yükleniyor…</div>';
@@ -800,9 +1014,9 @@ const ACILIS = new URLSearchParams(location.search).get('ac');
 function ilkBaglanti(s){ const m=String(s||'').match(/https?:\/\/[^\s"'<>]+/i); return m?m[0].replace(/[),.;!?]+$/,''):''; }
 async function baglantiAc(url){
   url=ilkBaglanti(url); if(!url){ bildir('Geçerli bir bağlantı bulunamadı'); return false; }
-  if(!secili || aktif()?.tur!=='lg'){ bildir('Önce LG TV\'yi seç'); return false; }
+  if(!secili || !['lg','adb','androidtv','smartcenter'].includes(aktif()?.tur)){ bildir('Bu cihaz bağlantı açmayı desteklemiyor'); return false; }
   titre(); const r=await post('/ac',{c:secili,url});
-  if(r.ok){ bildir(/youtu\.?be/i.test(url)?'Video TV\'deki YouTube\'da açılıyor':'Bağlantı TV tarayıcısında açılıyor'); $('#baglanti').value=''; return true; }
+  if(r.ok){ bildir(/youtu\.?be/i.test(url)?'Video TV\'deki YouTube\'da açılıyor':'Bağlantı TV\'de açılıyor'); $('#baglanti').value=''; return true; }
   sonuc(r); if(!r.hata&&!r.mesaj) bildir('Bağlantı açılamadı'); return false;
 }
 $('#baglantiAc').onclick=()=>baglantiAc($('#baglanti').value);

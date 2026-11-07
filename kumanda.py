@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # Telefon Kumandası köprüsü — Termux üzerinde çalışır.
-# Desteklenen cihazlar:
-#   • Android projeksiyon / Android TV  (ADB, ağ üzerinden)
-#   • LG akıllı TV (webOS, ağ üzerinden — ek kurulum gerekmez)
+# Desteklenen cihazlar (aynı anda birden fazla eklenebilir, kumandada aralarında geçiş yapılır):
+#   • LG akıllı TV (webOS)
+#   • Toshiba TV — Google TV / Android TV, VIDAA ve Smart Center sistemlerinin üçü de
+#   • Android projeksiyon / Android TV  (ADB)
+# Hepsi Wi‑Fi üzerinden; telefona Python dışında ek paket gerekmez.
 #
 # Kullanım:   python kumanda.py
 # Sonra aç:   http://127.0.0.1:8080   (ya da azataslan065-png.github.io/kumanda/)
@@ -70,26 +72,61 @@ def ev_agi_mi(ip):
 WIFI_UYARI = ('Telefon Wi-Fi\'a bağlı değil (mobil veri kullanıyor). '
               'Telefonu TV/projeksiyonla aynı Wi-Fi\'a bağlayıp tekrar ara.')
 
-def ag_tara():
+TARAMA_PORTLARI = (5555, 3000, 3001, 6466, 6467, 36669, 56789)
+
+def ag_tara(taban=None):
+    """Ev ağındaki TV ve projeksiyonları bulur; Toshiba'nın hangi sistemle çalıştığını da söyler."""
     ip = yerel_ip()
-    if not ip or not ev_agi_mi(ip):
-        return {'hata': WIFI_UYARI, 'adb': [], 'lg': []}
-    taban = ip.rsplit('.', 1)[0]
-    hedefler = [('%s.%d' % (taban, i), p) for i in range(1, 255) for p in (5555, 3000, 3001)]
-    adb, lg = [], set()
+    if taban is None:
+        if not ip or not ev_agi_mi(ip):
+            return {'hata': WIFI_UYARI, 'adb': [], 'lg': [], 'cihazlar': []}
+        taban = ip.rsplit('.', 1)[0]
+    hedefler = [('%s.%d' % (taban, i), p) for i in range(1, 255) for p in TARAMA_PORTLARI]
+    acik = {}
     with concurrent.futures.ThreadPoolExecutor(128) as h:
-        for (adres, p), acik in zip(hedefler, h.map(lambda x: port_acik(*x), hedefler)):
-            if not acik or adres == ip:
-                continue
-            if p == 5555:
-                adb.append(adres + ':5555')
-            else:
-                lg.add(adres)
+        for (adres, p), a in zip(hedefler, h.map(lambda x: port_acik(*x), hedefler)):
+            if a and adres != ip:
+                acik.setdefault(adres, set()).add(p)
     # Her adres "açık" görünüyorsa ağ bağlantıları yakalıyor demektir; liste güvenilmez.
-    if len(adb) > 20 or len(lg) > 20:
+    if len(acik) > 25:
         return {'hata': 'Bu ağda arama güvenilir sonuç vermiyor. Adresi TV\'nin ağ ayarlarından bakıp elle yaz.',
-                'adb': [], 'lg': []}
-    return {'ag': taban + '.x', 'adb': adb, 'lg': sorted(lg, key=lambda a: int(a.rsplit('.', 1)[1]))}
+                'adb': [], 'lg': [], 'cihazlar': []}
+    tvler = [a for a, p in acik.items() if p - {5555}]
+    upnp = upnp_bilgileri(tvler) if tvler else {}
+    def smartcenter_mi(a):
+        try:
+            import urllib.request
+            with urllib.request.urlopen('http://%s:56789/apps/SmartCenter' % a, timeout=2) as y:
+                return y.status == 200
+        except Exception:
+            return False
+    bulunan = []
+    for adres in sorted(acik, key=lambda a: int(a.rsplit('.', 1)[1])):
+        p, b = acik[adres], upnp.get(adres, {})
+        marka = b.get('marka', '')
+        if p & {3000, 3001}:
+            tur = 'lg'
+        elif p & {6466, 6467}:
+            tur = 'androidtv'
+        elif 36669 in p:
+            tur = 'vidaa'
+        elif 56789 in p and smartcenter_mi(adres):
+            tur = 'smartcenter'
+        else:
+            tur = None
+        if tur:
+            m = marka.lower()
+            ad = ('LG TV' if tur == 'lg' else 'Toshiba TV' if 'toshiba' in (m + b.get('model', '') + b.get('ad', '')).lower() else
+                  (marka.split()[0].title() + ' TV') if marka and not m.startswith(('google', 'android')) else 'TV')
+            bulunan.append({'adres': adres, 'tur': tur, 'sistem': SISTEM_ADI[tur], 'ad': ad,
+                            'marka': marka, 'model': b.get('model', ''), 'tv_adi': b.get('ad', '')})
+        if 5555 in p:
+            bulunan.append({'adres': adres + ':5555', 'tur': 'adb', 'sistem': SISTEM_ADI['adb'],
+                            'ad': 'Projeksiyon' if not tur else 'Android (ADB)', 'marka': marka,
+                            'model': b.get('model', ''), 'tv_adi': b.get('ad', '')})
+    return {'ag': taban + '.x', 'cihazlar': bulunan,
+            'adb': [c['adres'] for c in bulunan if c['tur'] == 'adb'],
+            'lg': [c['adres'] for c in bulunan if c['tur'] == 'lg']}
 
 def mac_duzelt(m):
     m = re.sub(r'[^0-9a-fA-F]', '', m or '')
@@ -1139,61 +1176,1465 @@ class ADBCihaz:
             return False
         return self.gonder("am start -a android.intent.action.VIEW -d '%s'" % url)
 
+# ───────────────────────── Toshiba TV'ler ─────────────────────────
+# Toshiba TV'ler (Vestel üretimi) üç farklı işletim sistemiyle satılıyor; her birinin kontrol yolu ayrı:
+#   • Google TV / Android TV  → Android TV Remote v2: Google TV uygulamasının kullandığı yol (6466/6467),
+#                                TV'de çıkan 6 haneli kodla eşleşir. (Protokol: tronikos/androidtvremote2, Apache-2.0)
+#   • VIDAA                   → TV'nin MQTT sunucusu (36669), TV'de çıkan 4 haneli kodla eşleşir.
+#                                (Protokol: tombabolewski/vidaa-control, MIT)
+#   • Smart Center (Vestel)   → DIAL sanal kumandası (56789) + durum kanalı (1986).
+#                                (Protokol: mutlutekir/ha-vestel-toshiba-tv, T3m3z/pyvesteltv, MIT)
+# Hepsi yalnızca Python'un kendi kütüphaneleriyle yazıldı; telefona ek paket gerekmez.
+import hashlib, math, secrets
+
+SISTEM_ADI = {'lg': 'LG webOS', 'adb': 'Android (ADB)', 'androidtv': 'Google TV / Android TV',
+              'vidaa': 'VIDAA', 'smartcenter': 'Smart Center'}
+
+# ── küçük protobuf kodlayıcı/çözücü ──
+def _pb_vint(n):
+    if n < 0:
+        n += 1 << 64
+    b = bytearray()
+    while True:
+        x, n = n & 0x7F, n >> 7
+        if n:
+            b.append(x | 0x80)
+        else:
+            b.append(x)
+            return bytes(b)
+
+def pb(*alanlar):
+    """pb((1, 5), (2, 'yazı'), (3, [(1, 2)]))  → alan numarası, değer (int / str / bytes / iç içe liste)"""
+    out = bytearray()
+    for no, v in alanlar:
+        if v is None:
+            continue
+        if isinstance(v, bool):
+            v = int(v)
+        if isinstance(v, int):
+            out += _pb_vint(no << 3) + _pb_vint(v)
+            continue
+        if isinstance(v, str):
+            v = v.encode('utf-8')
+        elif isinstance(v, (list, tuple)):
+            v = pb(*v)
+        out += _pb_vint(no << 3 | 2) + _pb_vint(len(v)) + v
+    return bytes(out)
+
+def _pb_vint_oku(b, i):
+    n = k = 0
+    while True:
+        if i >= len(b) or k > 63:
+            raise ValueError('bozuk protobuf')
+        x = b[i]
+        i += 1
+        n |= (x & 0x7F) << k
+        k += 7
+        if not x & 0x80:
+            return n, i
+
+def pb_coz(b):
+    d, i = {}, 0
+    while i < len(b):
+        anahtar, i = _pb_vint_oku(b, i)
+        no, tip = anahtar >> 3, anahtar & 7
+        if tip == 0:
+            v, i = _pb_vint_oku(b, i)
+        elif tip == 2:
+            n, i = _pb_vint_oku(b, i)
+            v, i = bytes(b[i:i + n]), i + n
+        elif tip == 5:
+            v, i = bytes(b[i:i + 4]), i + 4
+        elif tip == 1:
+            v, i = bytes(b[i:i + 8]), i + 8
+        else:
+            raise ValueError('bozuk protobuf')
+        d.setdefault(no, []).append(v)
+    return d
+
+def pb_al(d, no, vars=None):
+    return (d.get(no) or [vars])[0]
+
+def pb_soketten(s):
+    """Uzunluğu başta varint olarak yazılmış bir mesaj okur."""
+    n = k = 0
+    while True:
+        c = s.recv(1)
+        if not c:
+            raise ConnectionError('bağlantı kapandı')
+        n |= (c[0] & 0x7F) << k
+        k += 7
+        if not c[0] & 0x80:
+            break
+        if k > 35:
+            raise ConnectionError('bozuk mesaj')
+    v = b''
+    while len(v) < n:
+        p = s.recv(n - len(v))
+        if not p:
+            raise ConnectionError('bağlantı kapandı')
+        v += p
+    return v
+
+# ── kendinden imzalı RSA sertifikası (Google TV eşleşmesi için; ek kütüphane gerekmez) ──
+_KUCUK_ASALLAR = [p for p in range(3, 2000, 2) if all(p % q for q in range(3, int(p ** .5) + 1, 2))]
+
+def _asal_mi(n, tur=20):
+    for p in _KUCUK_ASALLAR:
+        if n % p == 0:
+            return n == p
+    d, s = n - 1, 0
+    while d % 2 == 0:
+        d //= 2
+        s += 1
+    for _ in range(tur):
+        x = pow(secrets.randbelow(n - 3) + 2, d, n)
+        if x in (1, n - 1):
+            continue
+        for _ in range(s - 1):
+            x = pow(x, 2, n)
+            if x == n - 1:
+                break
+        else:
+            return False
+    return True
+
+def _asal_uret(bit):
+    while True:
+        n = secrets.randbits(bit) | (3 << (bit - 2)) | 1
+        if _asal_mi(n):
+            return n
+
+def _der(etiket, icerik):
+    n = len(icerik)
+    if n < 128:
+        uz = bytes([n])
+    else:
+        b = n.to_bytes((n.bit_length() + 7) // 8, 'big')
+        uz = bytes([0x80 | len(b)]) + b
+    return bytes([etiket]) + uz + icerik
+
+def _der_int(x):
+    return _der(0x02, x.to_bytes(max(1, (x.bit_length() + 8) // 8), 'big'))
+
+def _der_seq(*p):
+    return _der(0x30, b''.join(p))
+
+def _der_parcalar(b):
+    i, out = 0, []
+    while i < len(b):
+        t, n = b[i], b[i + 1]
+        i += 2
+        if n & 0x80:
+            k = n & 0x7F
+            n = int.from_bytes(b[i:i + k], 'big')
+            i += k
+        out.append((t, b[i:i + n]))
+        i += n
+    return out
+
+def _bayt(x):
+    return x.to_bytes((x.bit_length() + 7) // 8, 'big')
+
+def _pem(bas, v):
+    t = base64.b64encode(v).decode()
+    return '-----BEGIN %s-----\n%s\n-----END %s-----\n' % (bas, '\n'.join(t[i:i + 64] for i in range(0, len(t), 64)), bas)
+
+def _pem_der(metin):
+    m = re.search(r'-----BEGIN CERTIFICATE-----(.+?)-----END CERTIFICATE-----', metin, re.S)
+    return base64.b64decode(''.join(m.group(1).split())) if m else b''
+
+def sertifika_uret(ad='Kumanda'):
+    from datetime import datetime, timedelta, timezone
+    e = 65537
+    while True:
+        p, q = _asal_uret(1024), _asal_uret(1024)
+        n, phi = p * q, (p - 1) * (q - 1)
+        if p != q and n.bit_length() == 2048 and math.gcd(e, phi) == 1:
+            break
+    d = pow(e, -1, phi)
+    oid_rsa, oid_imza = bytes.fromhex('06092a864886f70d010101'), bytes.fromhex('06092a864886f70d01010b')
+    oid_sha256, oid_cn, bos = bytes.fromhex('0609608648016503040201'), bytes.fromhex('0603550403'), b'\x05\x00'
+    isim = _der_seq(_der(0x31, _der_seq(oid_cn, _der(0x0C, ad.encode()))))
+    bas = datetime.now(timezone.utc) - timedelta(days=2)
+    zaman = lambda t: _der(0x17, t.strftime('%y%m%d%H%M%SZ').encode())
+    imza_alg = _der_seq(oid_imza, bos)
+    tbs = _der_seq(_der(0xA0, _der_int(2)), _der_int(secrets.randbits(62) + 1), imza_alg, isim,
+                   _der_seq(zaman(bas), zaman(bas + timedelta(days=3650))), isim,
+                   _der_seq(_der_seq(oid_rsa, bos), _der(0x03, b'\x00' + _der_seq(_der_int(n), _der_int(e)))))
+    ozet = _der_seq(_der_seq(oid_sha256, bos), _der(0x04, hashlib.sha256(tbs).digest()))
+    em = b'\x00\x01' + b'\xff' * (256 - 3 - len(ozet)) + b'\x00' + ozet
+    imza = pow(int.from_bytes(em, 'big'), d, n).to_bytes(256, 'big')
+    sert = _der_seq(tbs, imza_alg, _der(0x03, b'\x00' + imza))
+    anahtar = _der_seq(*(_der_int(x) for x in (0, n, e, d, p, q, d % (p - 1), d % (q - 1), pow(q, -1, p))))
+    return _pem('CERTIFICATE', sert), _pem('RSA PRIVATE KEY', anahtar)
+
+def sertifika_rsa(der):
+    """X.509 sertifikasından (DER) RSA modülü ve üssü."""
+    sert = _der_parcalar(der)[0][1]
+    alanlar = _der_parcalar(_der_parcalar(sert)[0][1])
+    if alanlar[0][0] == 0xA0:
+        alanlar = alanlar[1:]
+    bit = _der_parcalar(alanlar[5][1])[1][1][1:]
+    n, e = _der_parcalar(_der_parcalar(bit)[0][1])
+    return int.from_bytes(n[1], 'big'), int.from_bytes(e[1], 'big')
+
+ATV_KLASOR = os.path.expanduser('~/.kumanda_atv')
+ATV_SERT, ATV_ANAHTAR = os.path.join(ATV_KLASOR, 'istemci.pem'), os.path.join(ATV_KLASOR, 'istemci.key')
+atv_sert_kilit = threading.Lock()
+
+def atv_sertifika():
+    with atv_sert_kilit:
+        if not (os.path.exists(ATV_SERT) and os.path.exists(ATV_ANAHTAR)):
+            os.makedirs(ATV_KLASOR, exist_ok=True)
+            s, a = sertifika_uret()
+            with open(ATV_ANAHTAR, 'w') as f:
+                f.write(a)
+            try:
+                os.chmod(ATV_ANAHTAR, 0o600)
+            except Exception:
+                pass
+            with open(ATV_SERT, 'w') as f:
+                f.write(s)
+    return ATV_SERT, ATV_ANAHTAR
+
+def _tls_istemci(adres, port, sert=None, anahtar=None, sure=5):
+    b = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    b.check_hostname = False
+    b.verify_mode = ssl.CERT_NONE     # TV'ler kendi imzaladığı sertifikayı kullanır; yalnızca yerel ağ
+    if sert:
+        b.load_cert_chain(sert, anahtar)
+    ham = socket.create_connection((adres, port), timeout=sure)
+    try:
+        return b.wrap_socket(ham, server_hostname=adres)
+    except Exception:
+        ham.close()
+        raise
+
+class _TVTemel:
+    """Toshiba sürücülerinin ortak parçaları."""
+    tur = ''
+    TUSLAR = {}
+
+    def __init__(self, kayit):
+        self.id, self.adres = kayit['id'], kayit['adres']
+        self.ad = kayit.get('ad') or 'Toshiba TV'
+        self.mac = kayit.get('mac')
+        self.k = dict(kayit)            # ayar dosyasındaki kayıt (eşleşme anahtarları burada tutulur)
+        self.durum, self.mesaj = 'kapali', ''
+        self.sonuclar, self.bilgi = {}, {}
+        self.kilit = threading.Lock()
+        self.baglaniyor = False
+        self.son_deneme = 0
+        self.kod_bilgi = None           # TV'de çıkan eşleşme kodu bekleniyorsa {'uzunluk': 6, 'harf': True}
+        self.uygulamalar = []
+        self.son_kanal = ''
+        self.ogrenme = None
+
+    def kayit(self):
+        k = dict(self.k)
+        k.update(id=self.id, tur=self.tur, ad=self.ad, adres=self.adres, mac=self.mac)
+        return k
+
+    def ozet(self):
+        if self.durum in ('kapali', 'hata') and not self.baglaniyor and time.time() - self.son_deneme > 8:
+            self.baglan_arkada()
+        return {'id': self.id, 'tur': self.tur, 'ad': self.ad, 'adres': self.adres, 'durum': self.durum,
+                'mesaj': self.mesaj, 'mac': self.mac or '', 'bilgi': self.bilgi,
+                'kod': self.kod_bilgi if self.durum == 'kod' else None, 'ogrenme': self.ogrenme}
+
+    def baglan_arkada(self):
+        with self.kilit:
+            if self.baglaniyor or self.durum in ('bagli', 'kod'):
+                return
+            self.baglaniyor = True
+            self.son_deneme = time.time()
+        threading.Thread(target=self._baglan_sar, daemon=True).start()
+
+    def _baglan_sar(self):
+        try:
+            self._baglan()
+        except Exception as e:
+            self.durum, self.mesaj = 'hata', str(e)
+        finally:
+            self.baglaniyor = False
+            self.son_deneme = time.time()
+
+    def kaydet_sonuc(self, ad, ok, yol, hata=''):
+        self.sonuclar[ad] = {'ok': bool(ok), 'yol': yol, 'hata': '' if ok else (hata or 'olmadı')[:300],
+                             'zaman': int(time.time())}
+        return ok
+
+    def kapali_guc(self, ad):
+        """TV kapalıyken Güç: Wake-on-LAN."""
+        if self.mac and wake_on_lan(self.mac, self.adres):
+            self.son_deneme = time.time() - 4   # birkaç saniye sonra bağlanmayı dene
+            return self.kaydet_sonuc(ad, True, 'Wake-on-LAN')
+        return self.kaydet_sonuc(ad, False, '', 'TV kapalı. Uzaktan açmak için ⚙ menüsünde TV\'nin MAC adresini gir '
+                                                 've TV\'de "Wi‑Fi ile aç / Wake on LAN" ayarını aç.')
+
+    def yazi(self, t):
+        return self.kaydet_sonuc('YAZI', False, '', 'Bu TV yazı göndermeyi desteklemiyor')
+
+    def adres_ac(self, url):
+        return self.kaydet_sonuc('ADRES', False, '', 'Bu TV bağlantı açmayı desteklemiyor')
+
+    def kod_gir(self, kod):
+        return False, 'Şu an eşleşme kodu beklenmiyor'
+
+    def kapat(self):
+        pass
+
+# ── Google TV / Android TV (Android TV Remote v2) ──
+ATV_OZELLIK = 1 | 2 | 4 | 32 | 64 | 512      # ping, tuş, yazı, güç, ses, uygulama bağlantısı
+ATV_TUS = dict(ADB_TUS)                      # Android tuş kodları aynı
+ATV_TUS.update({'GUC': 26, 'CIKIS': 4, 'LISTE': 172})
+ATV_UYGULAMALAR = [
+    {'id': 'youtube', 'ad': 'YouTube', 'link': 'https://www.youtube.com', 'renk': '#e62117'},
+    {'id': 'netflix', 'ad': 'Netflix', 'link': 'https://www.netflix.com/title', 'renk': '#141414'},
+    {'id': 'prime', 'ad': 'Prime Video', 'link': 'https://app.primevideo.com', 'renk': '#00a8e1'},
+    {'id': 'disney', 'ad': 'Disney+', 'link': 'https://www.disneyplus.com', 'renk': '#0b1a5b'},
+    {'id': 'spotify', 'ad': 'Spotify', 'link': 'https://open.spotify.com', 'renk': '#1db954'},
+    {'id': 'play', 'ad': 'Google Play', 'link': 'market://launch?id=com.android.vending', 'renk': '#01875f'},
+]
+
+class AndroidTVCihaz(_TVTemel):
+    tur = 'androidtv'
+    TUSLAR = ATV_TUS
+
+    def __init__(self, kayit):
+        super().__init__(kayit)
+        self.s = None
+        self.eslesme = None
+        self.yaz_kilit = threading.Lock()
+        self.ime = (0, 0)
+        self.klavye = None
+        self.on_uygulama = ''
+        self.uygulamalar = ATV_UYGULAMALAR
+
+    def ozet(self):
+        o = super().ozet()
+        o['klavye'] = self.klavye
+        return o
+
+    def _gonder(self, mesaj, s=None):
+        s = s or self.s
+        if not s:
+            raise ConnectionError('TV bağlı değil')
+        with self.yaz_kilit:
+            s.sendall(_pb_vint(len(mesaj)) + mesaj)
+
+    def _baglan(self):
+        self.durum, self.mesaj = 'baglaniyor', ''
+        if not (os.path.exists(ATV_SERT) and os.path.exists(ATV_ANAHTAR)):
+            self.mesaj = 'İlk bağlantı için güvenlik anahtarı hazırlanıyor (yalnızca bir kez)…'
+        sert, anahtar = atv_sertifika()
+        if not port_acik(self.adres, 6466, 2):
+            self.durum = 'kapali'
+            self.mesaj = 'TV kapalı ya da ağda değil' if not port_acik(self.adres, 6467, 1) else 'TV yanıt vermiyor'
+            return
+        hazir = threading.Event()
+        try:
+            s = _tls_istemci(self.adres, 6466, sert, anahtar)
+            s.settimeout(20)
+            threading.Thread(target=self._dinle, args=(s, hazir), daemon=True).start()
+        except (ssl.SSLError, ConnectionResetError, BrokenPipeError):
+            s = None                                  # TV tanımadığı kumandayı el sıkışmada reddeder
+        if s is not None and hazir.wait(8) and self.s is s:
+            return
+        if s is not None:
+            try:
+                s.close()
+            except Exception:
+                pass
+        self._eslesme_baslat()
+
+    def _dinle(self, s, hazir):
+        try:
+            while True:
+                m = pb_coz(pb_soketten(s))
+                if 1 in m:                                         # remote_configure
+                    cfg = pb_coz(m[1][0])
+                    tv = pb_coz(pb_al(cfg, 2, b''))
+                    for k, no in (('model', 1), ('marka', 2), ('surum', 6)):
+                        v = pb_al(tv, no)
+                        if v:
+                            self.bilgi[k] = v.decode('utf-8', 'replace')
+                    ozellik = (pb_al(cfg, 1, 0) or ATV_OZELLIK) & ATV_OZELLIK
+                    self._gonder(pb((1, [(1, ozellik), (2, [(3, 1), (4, '1'), (5, 'atvremote'), (6, '1.0.0')])])), s)
+                    self.s = s
+                    self.durum, self.mesaj = 'bagli', ''
+                    self.kod_bilgi = None
+                    hazir.set()
+                elif 2 in m:                                       # remote_set_active
+                    self._gonder(pb((2, [(1, ATV_OZELLIK)])), s)
+                elif 8 in m:                                       # ping
+                    self._gonder(pb((9, [(1, pb_al(pb_coz(m[8][0]), 1, 0))])), s)
+                elif 20 in m:                                      # öndeki uygulama
+                    app = pb_coz(pb_al(pb_coz(m[20][0]), 1, b''))
+                    self.on_uygulama = (pb_al(app, 12) or b'').decode('utf-8', 'replace')
+                elif 21 in m:                                      # yazı kutusu açıldı
+                    d = pb_coz(m[21][0])
+                    self.ime = (pb_al(d, 1, 0), pb_al(d, 2, 0))
+                    self.klavye = True
+                elif 22 in m:
+                    self.klavye = True
+                elif 40 in m:                                      # TV açık/bekleme
+                    self.bilgi['ekran'] = 'açık' if pb_al(pb_coz(m[40][0]), 1, 0) else 'bekleme'
+        except Exception:
+            pass
+        finally:
+            hazir.set()
+            try:
+                s.close()
+            except Exception:
+                pass
+            if self.s is s:
+                self.s = None
+                if self.durum == 'bagli':
+                    self.durum, self.mesaj = 'kapali', 'TV bağlantısı koptu'
+
+    # — eşleşme: TV ekranında 6 haneli kod çıkar —
+    @staticmethod
+    def _dis(*alanlar):
+        return pb((1, 2), (2, 200), *alanlar)
+
+    def _eslesme_al(self, s, beklenen):
+        m = pb_coz(pb_soketten(s))
+        durum = pb_al(m, 2, 0)
+        if durum != 200:
+            raise ValueError({402: 'Kod yanlış', 401: 'TV bu eşleşme ayarını kabul etmedi'}.get(durum, 'TV eşleşmeyi reddetti (%s)' % durum))
+        if beklenen not in m:
+            raise ValueError('TV beklenmeyen yanıt verdi')
+        return m
+
+    def _eslesme_baslat(self):
+        sert, anahtar = atv_sertifika()
+        try:
+            s = _tls_istemci(self.adres, 6467, sert, anahtar)
+        except Exception as e:
+            self.durum, self.mesaj = 'hata', 'TV eşleşmeye izin vermedi: %s' % e
+            return
+        try:
+            s.settimeout(10)
+            self._gonder(self._dis((10, [(1, 'atvremote'), (2, 'Kumanda')])), s)
+            ack = self._eslesme_al(s, 11)
+            ad = pb_al(pb_coz(ack[11][0]), 1)
+            if ad:
+                self.bilgi['tv_adi'] = ad.decode('utf-8', 'replace')
+            self._gonder(self._dis((20, [(1, [(1, 3), (2, 6)]), (3, 1)])), s)
+            self._eslesme_al(s, 20)
+            self._gonder(self._dis((30, [(1, [(1, 3), (2, 6)]), (2, 1)])), s)
+            self._eslesme_al(s, 31)
+        except Exception as e:
+            s.close()
+            self.durum, self.mesaj = 'hata', 'Eşleşme başlatılamadı: %s' % e
+            return
+        s.settimeout(None)
+        if self.eslesme:
+            try:
+                self.eslesme.close()
+            except Exception:
+                pass
+        self.eslesme = s
+        self.kod_bilgi = {'uzunluk': 6, 'harf': True}
+        self.durum = 'kod'
+        self.mesaj = 'TV ekranında çıkan 6 haneli kodu yaz (harf de olabilir)'
+
+    def kod_gir(self, kod):
+        kod = re.sub(r'\s', '', str(kod or '')).upper()
+        if not re.match(r'^[0-9A-F]{6}$', kod):
+            return False, 'Kod 6 karakter olmalı (0–9 ve A–F)'
+        s = self.eslesme
+        if not s:
+            self.son_deneme = 0
+            self.durum = 'kapali'
+            self.baglan_arkada()
+            return False, 'Eşleşme süresi doldu, TV\'de yeni kod çıkacak'
+        try:
+            sn, se = sertifika_rsa(s.getpeercert(True))
+            with open(ATV_SERT) as f:
+                cn, ce = sertifika_rsa(_pem_der(f.read()))
+            h = hashlib.sha256(_bayt(cn) + _bayt(ce) + _bayt(sn) + _bayt(se) + bytes.fromhex(kod[2:])).digest()
+            if h[0] != int(kod[:2], 16):
+                return False, 'Kod yanlış, TV ekranındaki kodu tekrar kontrol et'
+            s.settimeout(10)
+            self._gonder(self._dis((40, [(1, h)])), s)
+            self._eslesme_al(s, 41)
+        except Exception as e:
+            try:
+                s.close()
+            except Exception:
+                pass
+            self.eslesme = None
+            self.durum, self.mesaj, self.kod_bilgi = 'hata', 'Eşleşme olmadı: %s' % e, None
+            return False, self.mesaj
+        try:
+            s.close()
+        except Exception:
+            pass
+        self.eslesme = None
+        self.kod_bilgi = None
+        self.durum, self.mesaj = 'baglaniyor', 'Eşleşti, bağlanılıyor…'
+        self.k['eslesti'] = True
+        cihaz_kaydet(self)
+        threading.Thread(target=self._baglan_sar, daemon=True).start()
+        return True, ''
+
+    def tus(self, ad):
+        kod = ATV_TUS.get(ad)
+        if kod is None:
+            return self.kaydet_sonuc(ad, False, '', 'Bu TV\'de bu tuş yok')
+        if self.durum != 'bagli' or not self.s:
+            if ad == 'GUC':
+                return self.kapali_guc(ad)
+            self.baglan_arkada()
+            return self.kaydet_sonuc(ad, False, '', 'TV bağlı değil')
+        try:
+            self._gonder(pb((10, [(1, kod), (2, 3)])))
+            return self.kaydet_sonuc(ad, True, 'tuş %d' % kod)
+        except Exception as e:
+            return self.kaydet_sonuc(ad, False, '', str(e))
+
+    def yazi(self, t):
+        if self.durum != 'bagli' or not self.s:
+            return self.kaydet_sonuc('YAZI', False, '', 'TV bağlı değil')
+        if not self.klavye:
+            return self.kaydet_sonuc('YAZI', False, '', 'TV\'de seçili bir yazı kutusu yok. Önce TV\'de arama kutusunu seç, sonra gönder.')
+        n = len(t) - 1
+        try:
+            self._gonder(pb((21, [(1, self.ime[0]), (2, self.ime[1]), (3, [(1, 1), (2, [(1, n), (2, n), (3, t)])])])))
+            return self.kaydet_sonuc('YAZI', True, 'yazı kutusu')
+        except Exception as e:
+            return self.kaydet_sonuc('YAZI', False, '', str(e))
+
+    def _link(self, link, ad):
+        if self.durum != 'bagli' or not self.s:
+            self.baglan_arkada()
+            return self.kaydet_sonuc(ad, False, '', 'TV bağlı değil')
+        try:
+            self._gonder(pb((90, [(1, link)])))
+            return self.kaydet_sonuc(ad, True, link)
+        except Exception as e:
+            return self.kaydet_sonuc(ad, False, '', str(e))
+
+    def uygulamalari_al(self):
+        return self.uygulamalar
+
+    def uygulama(self, uid):
+        u = next((a for a in self.uygulamalar if a['id'] == uid), None)
+        link = u['link'] if u else ('market://launch?id=' + re.sub(r'[^\w.]', '', uid))
+        return self._link(link, 'UYG:' + uid)
+
+    def adres_ac(self, url):
+        vid = youtube_kimligi(url)
+        if vid:
+            return self._link('https://www.youtube.com/watch?v=' + vid, 'ADRES')
+        return self._link(url, 'ADRES')
+
+    def kapat(self):
+        for s in (self.s, self.eslesme):
+            try:
+                s and s.close()
+            except Exception:
+                pass
+
+# ── VIDAA (MQTT) ──
+class MQTTRet(Exception):
+    pass
+
+class MQTT:
+    """Yalnızca bu iş için yeter küçüklükte MQTT 3.1.1 istemcisi (QoS 0)."""
+    def __init__(self, adres, port, istemci, kullanici, sifre, sert=None, anahtar=None, sure=6):
+        self.s = _tls_istemci(adres, port, sert, anahtar, sure)
+        self.yaz_kilit = threading.Lock()
+        self.pid = 0
+        st = self._st
+        bayrak = 0x02 | (0x80 if kullanici else 0) | (0x40 if sifre else 0)
+        govde = st('MQTT') + bytes([4, bayrak]) + struct.pack('>H', 60) + st(istemci)
+        govde += (st(kullanici) if kullanici else b'') + (st(sifre) if sifre else b'')
+        self._paket(0x10, govde)
+        tip, _, veri = self.oku()
+        if tip != 0x20 or len(veri) < 2:
+            self.kapat()
+            raise ConnectionError('TV beklenmeyen yanıt verdi')
+        if veri[1]:
+            self.kapat()
+            raise MQTTRet(veri[1])
+        self.s.settimeout(None)
+        self.acik = True
+
+    @staticmethod
+    def _st(x):
+        b = x.encode('utf-8') if isinstance(x, str) else x
+        return struct.pack('>H', len(b)) + b
+
+    def _paket(self, bas, govde):
+        n, uz = len(govde), bytearray()
+        while True:
+            x, n = n % 128, n // 128
+            uz.append(x | (0x80 if n else 0))
+            if not n:
+                break
+        with self.yaz_kilit:
+            self.s.sendall(bytes([bas]) + bytes(uz) + govde)
+
+    def _tam(self, n):
+        v = b''
+        while len(v) < n:
+            p = self.s.recv(n - len(v))
+            if not p:
+                raise ConnectionError('bağlantı kapandı')
+            v += p
+        return v
+
+    def oku(self):
+        b = self._tam(1)[0]
+        n = k = 0
+        while True:
+            x = self._tam(1)[0]
+            n |= (x & 0x7F) << k
+            k += 7
+            if not x & 0x80:
+                break
+        return b & 0xF0, b & 0x0F, self._tam(n) if n else b''
+
+    def abone(self, konular):
+        self.pid = self.pid % 65000 + 1
+        self._paket(0x82, struct.pack('>H', self.pid) + b''.join(self._st(k) + b'\x00' for k in konular))
+
+    def yayinla(self, konu, yuk=''):
+        if isinstance(yuk, (dict, list)):
+            yuk = json.dumps(yuk, separators=(',', ':'))
+        if isinstance(yuk, str):
+            yuk = yuk.encode('utf-8')
+        self._paket(0x30, self._st(konu) + yuk)
+
+    def kapat(self):
+        self.acik = False
+        try:
+            self._paket(0xE0, b'')
+        except Exception:
+            pass
+        try:
+            self.s.close()
+        except Exception:
+            pass
+
+VIDAA_SERT_KAYNAK = 'https://raw.githubusercontent.com/tombabolewski/vidaa-control/main/vidaa/certs/'
+VIDAA_KLASOR = os.path.expanduser('~/.kumanda_vidaa')
+VIDAA_DESEN = '38D65DC30F45109A369A86FCE866A85B'
+VIDAA_EK = {'yeni': 'h!i@s#$v%i^d&a*a', 'eski': 'h*i&s%e!r^v0i1c9'}
+VIDAA_XOR = 0x569814772b03a968
+
+def vidaa_sertifika():
+    """VIDAA TV'leri yalnızca VIDAA uygulamasının sertifikasıyla konuşur; ilk seferde indirilir."""
+    s, a = os.path.join(VIDAA_KLASOR, 'vidaa_client.pem'), os.path.join(VIDAA_KLASOR, 'vidaa_client.key')
+    if not (os.path.exists(s) and os.path.exists(a)):
+        os.makedirs(VIDAA_KLASOR, exist_ok=True)
+        for yol, ad in ((s, 'vidaa_client.pem'), (a, 'vidaa_client.key')):
+            veri = _indir(VIDAA_SERT_KAYNAK + ad, sure=20)
+            if b'-----BEGIN' not in veri:
+                raise ValueError('sertifika dosyası bozuk')
+            with open(yol + '.tmp', 'wb') as f:
+                f.write(veri)
+            os.replace(yol + '.tmp', yol)
+    return s, a
+
+def vidaa_kimlik(uuid, yontem, zaman=None):
+    """VIDAA uygulamasının ürettiği MQTT kullanıcı adı/şifresi (yontem: yeni / orta / eski)."""
+    zaman = int(zaman or time.time())
+    md5 = lambda x: hashlib.md5(x.encode()).hexdigest().upper()
+    istemci = '%s$his$%s_vidaacommon_001' % (uuid, md5('%s$%s' % (VIDAA_DESEN, uuid))[:6])
+    kullanici = 'his$%d' % (zaman if yontem == 'eski' else zaman ^ VIDAA_XOR)
+    deger = 'his%d%s' % (sum(int(c) for c in str(zaman)) % 10, VIDAA_EK['yeni' if yontem == 'yeni' else 'eski'])
+    return istemci, kullanici, md5('%d$%s' % (zaman, md5(deger)[:6]))
+
+VIDAA_TUS = {
+    'YUKARI': 'KEY_UP', 'ASAGI': 'KEY_DOWN', 'SOL': 'KEY_LEFT', 'SAG': 'KEY_RIGHT', 'TAMAM': 'KEY_OK',
+    'GERI': 'KEY_RETURNS', 'ANA': 'KEY_HOME', 'AYARLAR': 'KEY_MENU', 'MENU': 'KEY_MENU', 'CIKIS': 'KEY_EXIT',
+    'SES+': 'KEY_VOLUMEUP', 'SES-': 'KEY_VOLUMEDOWN', 'SESSIZ': 'KEY_MUTE',
+    'KANAL+': 'KEY_CHANNELUP', 'KANAL-': 'KEY_CHANNELDOWN', 'GUC': 'KEY_POWER',
+    'OYNAT': 'KEY_PLAY', 'DURAKLAT': 'KEY_PAUSE', 'DURDUR': 'KEY_STOP', 'ILERI_SAR': 'KEY_FORWARDS', 'GERI_SAR': 'KEY_BACK',
+    'KIRMIZI': 'KEY_RED', 'YESIL': 'KEY_GREEN', 'SARI': 'KEY_YELLOW', 'MAVI': 'KEY_BLUE',
+    'ALTYAZI': 'KEY_SUBTITLE', 'BILGI': 'KEY_INFO', 'REHBER': 'KEY_EPG',
+}
+for _r in '0123456789':
+    VIDAA_TUS[_r] = 'KEY_' + _r
+VIDAA_YEDEK_UYG = [{'id': 'youtube', 'ad': 'YouTube', 'url': 'youtube', 'urlType': 37, 'storeType': 0},
+                   {'id': 'netflix', 'ad': 'Netflix', 'url': 'netflix', 'urlType': 37, 'storeType': 0},
+                   {'id': 'amazon', 'ad': 'Prime Video', 'url': 'amazon', 'urlType': 37, 'storeType': 0}]
+
+class VidaaCihaz(_TVTemel):
+    tur = 'vidaa'
+    TUSLAR = VIDAA_TUS
+
+    def __init__(self, kayit):
+        super().__init__(kayit)
+        self.m = None
+        self.cevaplar = {}            # konu sonu → (Event, son yük)
+        if not self.k.get('uuid'):
+            b = bytearray(secrets.token_bytes(6))
+            b[0] = (b[0] | 0x02) & 0xFE   # yerel yönetimli MAC biçimi
+            self.k['uuid'] = ':'.join('%02x' % x for x in b)
+
+    def _konu(self, servis, eylem):
+        return '/remoteapp/tv/%s/%s/actions/%s' % (servis, self.k['istemci'], eylem)
+
+    def _bekle_hazirla(self, *adlar):
+        for a in adlar:
+            self.cevaplar[a] = (threading.Event(), None)
+
+    def _bekle(self, ad, sure):
+        e = self.cevaplar.get(ad)
+        if e and e[0].wait(sure):
+            return self.cevaplar[ad][1]
+        return None
+
+    def _protokol(self):
+        try:
+            import urllib.request
+            with urllib.request.urlopen('http://%s:38400/MediaServer/rendererdevicedesc.xml' % self.adres, timeout=3) as y:
+                x = y.read(65536).decode('utf-8', 'replace')
+            for a, b in (('modelName', 'model'), ('friendlyName', 'tv_adi'), ('manufacturer', 'marka')):
+                m = re.search(r'<%s>([^<]+)</%s>' % (a, a), x)
+                if m:
+                    self.bilgi[b] = m.group(1).strip()
+            m = re.search(r'transport_protocol[^0-9]{0,4}(\d+)', x, re.I)
+            return int(m.group(1)) if m else None
+        except Exception:
+            return None
+
+    def _mqtt(self, istemci, kullanici, sifre):
+        sert, anahtar = vidaa_sertifika()
+        return MQTT(self.adres, 36669, istemci, kullanici, sifre, sert, anahtar)
+
+    def _abone_ol(self):
+        cid = self.k['istemci']
+        taban = '/remoteapp/mobile/%s' % cid
+        self.m.abone([taban + '/ui_service/data/authentication', taban + '/ui_service/data/authenticationcode',
+                      taban + '/platform_service/data/tokenissuance', taban + '/ui_service/data/tokenissuance',
+                      taban + '/ui_service/data/applist', taban + '/ui_service/data/sourcelist',
+                      taban + '/ui_service/data/state', taban + '/platform_service/data/gettvinfo',
+                      '/remoteapp/mobile/broadcast/ui_service/state', '/remoteapp/mobile/broadcast/ui_service/volume'])
+        threading.Thread(target=self._dinle, args=(self.m,), daemon=True).start()
+        threading.Thread(target=self._canli_tut, args=(self.m,), daemon=True).start()
+
+    def _baglan(self):
+        self.durum, self.mesaj = 'baglaniyor', ''
+        if not port_acik(self.adres, 36669, 2):
+            self.durum, self.mesaj = 'kapali', 'TV kapalı ya da ağda değil'
+            return
+        try:
+            vidaa_sertifika()
+        except Exception as e:
+            self.durum, self.mesaj = 'hata', 'VIDAA bağlantı sertifikası indirilemedi (internet gerekli, yalnızca ilk sefer): %s' % e
+            return
+        k, simdi = self.k, time.time()
+        if k.get('istemci') and k.get('kullanici'):
+            for sifre, yenile in ((k.get('erisim'), False), (k.get('yenileme'), True)):
+                bitis = k.get('yenileme_bitis' if yenile else 'erisim_bitis') or 0
+                if not sifre or simdi > bitis:
+                    continue
+                try:
+                    self.m = self._mqtt(k['istemci'], k['kullanici'], sifre)
+                except MQTTRet:
+                    continue
+                self._bekle_hazirla('tokenissuance')
+                self._abone_ol()
+                if yenile:
+                    self.m.yayinla('/remoteapp/tv/platform_service/%s/data/gettoken' % k['istemci'], {'refreshtoken': sifre})
+                    if not self._bekle('tokenissuance', 8):
+                        self.m.kapat()
+                        continue
+                self.durum, self.mesaj = 'bagli', ''
+                self._sonra()
+                return
+        # İlk eşleşme: TV ekranında 4 haneli kod çıkar
+        protokol = self._protokol()
+        sira = ['yeni', 'orta', 'eski'] if protokol is None else (
+            ['yeni'] if protokol >= 3290 else ['orta'] if protokol >= 3000 else ['eski'])
+        if protokol is None:
+            sira.append('sabit')
+        son = None
+        for yontem in sira:
+            if yontem == 'sabit':
+                istemci, kullanici, sifre = k['uuid'].replace(':', '').upper() + '$vidaa_common', 'hisenseservice', 'multimqttservice'
+            else:
+                istemci, kullanici, sifre = vidaa_kimlik(k['uuid'], yontem)
+            try:
+                self.m = self._mqtt(istemci, kullanici, sifre)
+            except MQTTRet as e:
+                son = e
+                continue
+            k.update(istemci=istemci, kullanici=kullanici, yontem=yontem)
+            break
+        else:
+            self.durum, self.mesaj = 'hata', 'TV bağlantıyı kabul etmedi (%s). TV\'de Ayarlar → Ağ → "Mobil cihazla kontrol" açık olmalı.' % son
+            return
+        self._bekle_hazirla('authentication', 'tokenissuance')
+        self._abone_ol()
+        self.m.yayinla(self._konu('ui_service', 'vidaa_app_connect'),
+                       {'app_version': 2, 'connect_result': 0, 'device_type': 'Mobile App'})
+        self.kod_bilgi = {'uzunluk': 4, 'harf': False}
+        self.durum = 'kod'
+        self.mesaj = 'TV ekranında çıkan 4 haneli kodu yaz'
+
+    def _sonra(self):
+        try:
+            self.m.yayinla(self._konu('platform_service', 'gettvinfo'), '')
+        except Exception:
+            pass
+
+    def _canli_tut(self, m):
+        while m.acik:
+            time.sleep(25)
+            try:
+                m._paket(0xC0, b'')
+            except Exception:
+                break
+
+    def _dinle(self, m):
+        try:
+            while True:
+                tip, bayrak, veri = m.oku()
+                if tip != 0x30:
+                    continue
+                n = struct.unpack('>H', veri[:2])[0]
+                konu = veri[2:2 + n].decode('utf-8', 'replace')
+                yuk = veri[2 + n + (2 if bayrak & 0x06 else 0):]
+                try:
+                    o = json.loads(yuk.decode('utf-8', 'replace') or 'null')
+                except Exception:
+                    o = yuk.decode('utf-8', 'replace')
+                son = konu.rsplit('/', 1)[-1]
+                if son == 'tokenissuance' and isinstance(o, dict) and o.get('accesstoken'):
+                    s = time.time()
+                    self.k.update(erisim=o['accesstoken'], yenileme=o.get('refreshtoken') or self.k.get('yenileme'),
+                                  erisim_bitis=s + float(o.get('accesstoken_duration_day') or 7) * 86400 - 3600,
+                                  yenileme_bitis=s + float(o.get('refreshtoken_duration_day') or 30) * 86400 - 3600)
+                    cihaz_kaydet(self)
+                elif son == 'gettvinfo' and isinstance(o, dict):
+                    for a, b in (('model_name', 'model'), ('tv_name', 'tv_adi'), ('sw_version', 'surum')):
+                        if o.get(a):
+                            self.bilgi[b] = str(o[a])
+                elif son == 'state' and isinstance(o, dict) and o.get('statetype') == 'authentication' and self.durum == 'bagli':
+                    self.k.pop('erisim', None)          # TV eşleşmeyi unutmuş
+                if son in ('authentication', 'authenticationcode'):
+                    son = 'authentication'
+                e = self.cevaplar.get(son)
+                if e:
+                    self.cevaplar[son] = (e[0], o)
+                    e[0].set()
+        except Exception:
+            pass
+        finally:
+            m.kapat()
+            if self.m is m:
+                self.m = None
+                if self.durum in ('bagli', 'kod'):
+                    self.durum, self.mesaj = 'kapali', 'TV bağlantısı koptu'
+                    self.kod_bilgi = None
+
+    def kod_gir(self, kod):
+        kod = re.sub(r'\D', '', str(kod or ''))
+        if len(kod) != 4:
+            return False, 'Kod 4 rakam olmalı'
+        if self.durum != 'kod' or not self.m:
+            self.son_deneme = 0
+            self.baglan_arkada()
+            return False, 'Eşleşme süresi doldu, TV\'de yeni kod çıkacak'
+        self._bekle_hazirla('authentication')
+        self.m.yayinla(self._konu('ui_service', 'authenticationcode'), {'authNum': int(kod)})
+        c = self._bekle('authentication', 10)
+        if not (isinstance(c, dict) and str(c.get('result')) == '1'):
+            return False, 'Kod kabul edilmedi, TV ekranındaki kodu tekrar kontrol et'
+        self._bekle_hazirla('tokenissuance')
+        self.m.yayinla('/remoteapp/tv/platform_service/%s/data/gettoken' % self.k['istemci'], {'refreshtoken': ''})
+        self.m.yayinla(self._konu('ui_service', 'authenticationcodeclose'), '')
+        self._bekle('tokenissuance', 8)
+        self.kod_bilgi = None
+        self.durum, self.mesaj = 'bagli', ''
+        cihaz_kaydet(self)
+        self._sonra()
+        return True, ''
+
+    def _yayin(self, ad, servis, eylem, yuk=''):
+        if self.durum != 'bagli' or not self.m:
+            self.baglan_arkada()
+            return self.kaydet_sonuc(ad, False, '', 'TV bağlı değil' if self.durum != 'kod' else 'Önce TV\'deki kodu gir')
+        try:
+            self.m.yayinla(self._konu(servis, eylem), yuk)
+            return self.kaydet_sonuc(ad, True, eylem + (' ' + yuk if isinstance(yuk, str) and yuk else ''))
+        except Exception as e:
+            return self.kaydet_sonuc(ad, False, '', str(e))
+
+    def tus(self, ad):
+        k = VIDAA_TUS.get(ad)
+        if not k:
+            return self.kaydet_sonuc(ad, False, '', 'Bu TV\'de bu tuş yok')
+        if ad == 'GUC' and self.durum != 'bagli':
+            return self.kapali_guc(ad)
+        return self._yayin(ad, 'remote_service', 'sendkey', k)
+
+    def _liste_iste(self, eylem, ad):
+        if self.durum != 'bagli' or not self.m:
+            return None
+        self._bekle_hazirla(ad)
+        try:
+            self.m.yayinla(self._konu('ui_service', eylem), '')
+        except Exception:
+            return None
+        return self._bekle(ad, 5)
+
+    def uygulamalari_al(self):
+        l = self._liste_iste('applist', 'applist')
+        if isinstance(l, dict):
+            l = l.get('applist') or l.get('list') or []
+        if isinstance(l, list) and l:
+            self.uygulamalar = [{'id': str(a.get('appId') or a.get('name')), 'ad': a.get('name') or '?',
+                                 'url': a.get('url', ''), 'urlType': a.get('urlType', 37), 'storeType': a.get('storeType', 0)}
+                                for a in l if isinstance(a, dict) and (a.get('name') or a.get('appId'))]
+        return self.uygulamalar or VIDAA_YEDEK_UYG
+
+    def uygulama(self, uid):
+        u = next((a for a in (self.uygulamalar or []) + VIDAA_YEDEK_UYG if a['id'] == uid), None)
+        if not u:
+            return self.kaydet_sonuc('UYG:' + uid, False, '', 'Uygulama TV\'de bulunamadı')
+        return self._yayin('UYG:' + uid, 'ui_service', 'launchapp',
+                           {'name': u['ad'], 'urlType': u.get('urlType', 37), 'storeType': u.get('storeType', 0), 'url': u.get('url', '')})
+
+    def girisler(self):
+        l = self._liste_iste('sourcelist', 'sourcelist')
+        if isinstance(l, dict):
+            l = l.get('sourcelist') or []
+        return [{'id': str(g.get('sourceid')), 'ad': g.get('displayname') or g.get('sourcename') or str(g.get('sourceid')),
+                 'bagli': str(g.get('is_signal', g.get('has_signal', 1))) != '0'}
+                for g in (l or []) if isinstance(g, dict) and g.get('sourceid') is not None]
+
+    def giris_sec(self, gid):
+        return self._yayin('GIRIS', 'ui_service', 'changesource', {'sourceid': str(gid)})
+
+    def kapat(self):
+        if self.m:
+            self.m.kapat()
+
+# ── Smart Center (Vestel altyapılı eski Toshiba'lar) ──
+# Tuş kodları: ha-vestel-toshiba-tv (const.py) ve pyvesteltv. Renk/Bilgi kodları Vestel'in RC5 düzeninden
+# tahmindir; ⚙ → Tuş testi'nde hangilerinin işe yaradığı görülebilir.
+SC_TUS = {
+    'GUC': 1012, 'SESSIZ': 1013, 'SES+': 1016, 'SES-': 1017, 'KANAL+': 1032, 'KANAL-': 1033,
+    'YUKARI': 1020, 'ASAGI': 1019, 'SOL': 1021, 'SAG': 1022, 'TAMAM': 1053, 'GERI': 1010,
+    'ANA': 1048, 'AYARLAR': 1066, 'MENU': 1066, 'CIKIS': 1037, 'KAYNAK': 1056, 'INTERNET': 1065, 'FAVORI': 1062,
+    'OYNAT': 1025, 'DURDUR': 1049, 'GERI_SAR': 1027, 'ILERI_SAR': 1028,
+    'KIRMIZI': 1055, 'YESIL': 1054, 'SARI': 1050, 'MAVI': 1052, 'BILGI': 1015,
+}
+for _r in '0123456789':
+    SC_TUS[_r] = 1000 + int(_r)
+SC_UYGULAMALAR = [{'id': 'YouTube', 'ad': 'YouTube', 'renk': '#e62117'}, {'id': 'Netflix', 'ad': 'Netflix', 'renk': '#141414'},
+                  {'id': 'INTERNET', 'ad': 'İnternet portalı', 'renk': '#2f62c6'}]
+
+class SmartCenterCihaz(_TVTemel):
+    tur = 'smartcenter'
+    TUSLAR = SC_TUS
+
+    def __init__(self, kayit):
+        super().__init__(kayit)
+        self.uygulamalar = SC_UYGULAMALAR
+        self.yol = kayit.get('yol') or 'sc'      # hangi istek biçimi çalıştı
+        self.ogrenebilir = False
+        self._son_kontrol = 0
+
+    def _http(self, yol, govde=None, sure=3, yontem=None):
+        import urllib.request, urllib.error
+        istek = urllib.request.Request('http://%s:56789%s' % (self.adres, yol), data=govde, method=yontem,
+                                       headers={'Content-Type': 'text/plain; charset="utf-8"', 'Connection': 'close'})
+        try:
+            with urllib.request.urlopen(istek, timeout=sure) as y:
+                return y.status, y.read(65536)
+        except urllib.error.HTTPError as e:
+            return e.code, b''
+
+    def ozet(self):
+        if time.time() - self._son_kontrol > 4 and not self.baglaniyor:
+            self._son_kontrol = time.time()
+            self.baglan_arkada()
+        return super().ozet()
+
+    def baglan_arkada(self):
+        with self.kilit:
+            if self.baglaniyor:
+                return
+            self.baglaniyor = True
+            self.son_deneme = time.time()
+        threading.Thread(target=self._baglan_sar, daemon=True).start()
+
+    def _baglan(self):
+        try:
+            kod, govde = self._http('/apps/SmartCenter', sure=2)
+        except Exception:
+            kod, govde = None, b''
+        if kod is None:
+            self.durum, self.mesaj = 'kapali', 'TV kapalı ya da ağda değil'
+            return
+        if self.durum != 'bagli':
+            m = re.search(rb'<state>([^<]*)</state>', govde or b'')
+            if m:
+                self.bilgi['smartcenter'] = m.group(1).decode('utf-8', 'replace')
+            program = self.durum_sor('GETPROGRAM')
+            self.ogrenebilir = bool(program)
+            if program:
+                self.bilgi['kanal'] = program
+        self.durum, self.mesaj = 'bagli', ''
+
+    def durum_sor(self, komut, sure=2):
+        """TV'nin 1986 numaralı kanalı: GETPROGRAM, GETSOURCE, GETMUTE…"""
+        try:
+            with socket.create_connection((self.adres, 1986), timeout=sure) as s:
+                s.settimeout(sure)
+                s.sendall((komut + '\r\n').encode())
+                v = b''
+                while b'\n' not in v and len(v) < 4096:
+                    p = s.recv(1024)
+                    if not p:
+                        break
+                    v += p
+        except Exception:
+            return ''
+        satir = v.split(b'\n', 1)[0].decode('utf-8', 'replace').strip()
+        return (satir.split(' is ', 1)[1] if ' is ' in satir else satir.split(' ', 1)[-1] if ' ' in satir else satir).strip()
+
+    def _tus_gonder(self, kod):
+        bicimler = [('sc', '/apps/SmartCenter', '<remote><key code=%d /></remote>' % kod),
+                    ('vr', '/apps/vr/remote', '<?xml version="1.0" ?><remote><key code="%d"/></remote>' % kod)]
+        bicimler.sort(key=lambda b: b[0] != self.yol)
+        hata = ''
+        for ad, yol, govde in bicimler:
+            try:
+                d, _ = self._http(yol, govde.encode(), sure=3, yontem='POST')
+            except Exception as e:
+                hata = str(e)
+                continue
+            if 200 <= d < 300:
+                if ad != self.yol:
+                    self.yol = self.k['yol'] = ad
+                    cihaz_kaydet(self)
+                return True, ad
+            hata = 'TV %d yanıtı verdi' % d
+        return False, hata
+
+    def tus(self, ad):
+        kod = SC_TUS.get(ad)
+        if kod is None:
+            return self.kaydet_sonuc(ad, False, '', 'Bu TV\'de bu tuş yok')
+        if self.durum != 'bagli' and ad == 'GUC' and self.mac:
+            return self.kapali_guc(ad)
+        ok, bilgi = self._tus_gonder(kod)
+        if ok:
+            self.durum = 'bagli'
+            return self.kaydet_sonuc(ad, True, 'kod %d' % kod)
+        if ad == 'GUC':
+            return self.kapali_guc(ad)
+        self.durum, self.mesaj = 'kapali', 'TV yanıt vermiyor'
+        return self.kaydet_sonuc(ad, False, '', bilgi or 'TV yanıt vermiyor')
+
+    def _dial(self, uygulama, govde=b'', ad=None):
+        try:
+            d, _ = self._http('/apps/' + uygulama, govde, sure=5, yontem='POST')
+        except Exception as e:
+            return self.kaydet_sonuc(ad or 'UYG:' + uygulama, False, '', str(e))
+        return self.kaydet_sonuc(ad or 'UYG:' + uygulama, 200 <= d < 300, 'DIAL ' + uygulama, 'TV %d yanıtı verdi' % d)
+
+    def uygulamalari_al(self):
+        return self.uygulamalar
+
+    def uygulama(self, uid):
+        if uid == 'INTERNET':
+            return self.tus('INTERNET')
+        return self._dial(re.sub(r'[^\w.]', '', uid))
+
+    def adres_ac(self, url):
+        vid = youtube_kimligi(url)
+        if not vid:
+            return self.kaydet_sonuc('ADRES', False, '', 'Bu TV\'de yalnızca YouTube bağlantıları açılabiliyor')
+        return self._dial('YouTube', ('v=' + vid).encode(), 'ADRES')
+
+    def simdiki_ad(self):
+        return self.durum_sor('GETPROGRAM') if self.ogrenebilir else ''
+
+    def kanal_ogren(self, adet):
+        if self.ogrenme and self.ogrenme.get('calisiyor'):
+            return False
+        self.ogrenme = {'calisiyor': True, 'no': 0, 'adet': adet, 'bulunan': 0, 'iptal': False}
+        threading.Thread(target=self._ogren, args=(adet,), daemon=True).start()
+        return True
+
+    def _ogren(self, adet):
+        # Olmayan bir numara yazılınca TV bulunduğu kanalda kalır; bu yüzden ad değişmediyse o numara atlanır.
+        # TV'nin başlangıçta açık olduğu kanal 1'de "değişmeden" görülürse kesin sayılmaz: sonra başka
+        # numarada yeniden çıkarsa doğru numarası odur.
+        bulunan, onceki, bos = [], self.durum_sor('GETPROGRAM'), 0
+        o = self.ogrenme
+        o['baslangic'] = onceki
+        try:
+            for no in range(1, adet + 1):
+                if o.get('iptal'):
+                    break
+                for ch in str(no):
+                    self.tus(ch)
+                    time.sleep(0.35)
+                time.sleep(3.2)
+                ad = self.durum_sor('GETPROGRAM')
+                o.update(no=no, bulunan=len(bulunan))
+                degisti = ad != onceki
+                var = next((k for k in bulunan if k['ad'] == ad), None)
+                if ad and not var:
+                    bulunan.append({'ad': ad, 'no': str(no), 'kesin': degisti})
+                    bos = 0
+                elif ad and var and degisti and not var['kesin']:
+                    var.update(no=str(no), kesin=True)
+                    bos = 0
+                else:
+                    bos += 1
+                    if bos >= 10 and bulunan:
+                        break
+                onceki = ad or onceki
+            for b in bulunan:
+                b.pop('kesin', None)
+            # TV'yi öğrenmeden önceki kanala geri al
+            ilk = next((b for b in bulunan if b['ad'] == o.get('baslangic')), None)
+            if ilk and not o.get('iptal'):
+                for ch in ilk['no']:
+                    self.tus(ch)
+                    time.sleep(0.35)
+            if bulunan:
+                kayit = elle_liste(self)
+                adlar = {kanal_anahtari(k['ad']) for k in bulunan}
+                # Öğrenilenler + numarası elle girilmiş, öğrenilmeyen kanallar
+                kalan = [k for k in kayit if k.get('no') and kanal_anahtari(k['ad']) not in adlar
+                         and not any(b['no'] == k['no'] for b in bulunan)]
+                self.k['kanallar'] = bulunan + kalan
+                cihaz_kaydet(self)
+        finally:
+            o.update(calisiyor=False, bulunan=len(bulunan))
+
+# ── Toshiba kanal listesi ──
+# Bu TV'ler kendi kanal listesini ağdan vermiyor. Liste kumandada tutulur: kanala ilk dokunuşta
+# TV'deki numarası sorulur, sonra o numara rakam tuşlarıyla açılır.
+VARSAYILAN_KANALLAR = [
+    'TRT 1', 'ATV', 'Show TV', 'Star TV', 'Kanal D', 'NOW', 'TV8', 'TV8,5', 'Kanal 7', 'Beyaz TV', '360', 'Teve2',
+    'TRT 2', 'TRT Haber', 'TRT Spor', 'TRT Spor Yıldız', 'TRT Belgesel', 'TRT Çocuk', 'TRT Müzik', 'TRT Türk',
+    'TRT Avaz', 'TRT Kurdî', 'TRT Arabi', 'TRT World', 'TRT 4K', 'A Haber', 'A Spor', 'A Para', 'A2',
+    'Habertürk', 'CNN Türk', 'NTV', 'Haber Global', 'TGRT Haber', 'Halk TV', 'Sözcü TV', 'Tele1', 'TV100',
+    'Ekol TV', '24', 'Ülke TV', 'Bloomberg HT', 'Flash Haber', 'KRT', 'TV 4', 'DMAX', 'TLC', 'Show Max',
+    'Dream Türk', 'Minika Çocuk', 'Minika Go', 'TGRT Belgesel', 'Diyanet TV', 'Lalegül TV', 'Semerkand TV',
+    'Kral Pop', 'Power Türk', 'Number1 TV',
+]
+
+def elle_liste(c):
+    l = c.k.get('kanallar')
+    if not isinstance(l, list):
+        l = [{'ad': a, 'no': ''} for a in VARSAYILAN_KANALLAR]
+    return [k for k in l if isinstance(k, dict) and k.get('ad')]
+
+def _elle_id(ad):
+    return 'm:' + (kanal_anahtari(ad) or ad)
+
+def elle_kanallar(c):
+    akis_hazirla()
+    l = elle_liste(c)
+    numarali = sorted((k for k in l if k.get('no')), key=lambda k: (int(k['no']), k['ad']))
+    sirali = numarali + [k for k in l if not k.get('no')]
+    simdiki = ''
+    ad = getattr(c, 'simdiki_ad', lambda: '')()
+    if ad:
+        hedef = kanal_anahtari(ad)
+        simdiki = next((_elle_id(k['ad']) for k in sirali if kanal_anahtari(k['ad']) == hedef), '')
+    return {'kanallar': [{'id': _elle_id(k['ad']), 'ad': k['ad'], 'no': k.get('no') or '', 'radyo': False,
+                          'logo': '', 'akis': kanal_akisi(k['ad'])} for k in sirali],
+            'elle': True, 'simdiki': simdiki or c.son_kanal,
+            'ogren': bool(getattr(c, 'ogrenebilir', False)), 'ogrenme': c.ogrenme,
+            'akis': {'hazir': bool(AKIS['veri']), 'yukleniyor': AKIS['yukleniyor'],
+                     'zaman': int(AKIS['zaman']), 'hata': AKIS['hata']}}
+
+def elle_kanal_ac(c, kid):
+    k = next((k for k in elle_liste(c) if _elle_id(k['ad']) == kid), None)
+    no = (k or {}).get('no') or (kid[3:] if kid.startswith('no:') else '')
+    if not re.match(r'^\d{1,4}$', no or ''):
+        return c.kaydet_sonuc('KANAL', False, '', 'Bu kanalın TV\'deki numarası girilmemiş')
+    for ch in no:
+        if not c.tus(ch):
+            return c.kaydet_sonuc('KANAL', False, '', (c.sonuclar.get(ch) or {}).get('hata') or 'TV bağlı değil')
+        time.sleep(0.3)
+    c.son_kanal = kid if k else ''
+    return c.kaydet_sonuc('KANAL', True, 'rakamlar ' + no)
+
+def elle_kanal_duzenle(c, ad, no, sil=False):
+    ad = re.sub(r'\s+', ' ', str(ad or '')).strip()[:60]
+    no = re.sub(r'\D', '', str(no or ''))[:4]
+    if not ad:
+        return 'Kanal adı boş'
+    l = elle_liste(c)
+    anahtar = kanal_anahtari(ad) or ad
+    var = next((k for k in l if (kanal_anahtari(k['ad']) or k['ad']) == anahtar), None)
+    if sil:
+        l = [k for k in l if k is not var]
+    elif var:
+        var['no'] = no
+    else:
+        l.append({'ad': ad, 'no': no})
+    if no and not sil:
+        for k in l:          # aynı numara iki kanalda olmasın
+            if k['no'] == no and (kanal_anahtari(k['ad']) or k['ad']) != anahtar:
+                k['no'] = ''
+    c.k['kanallar'] = l
+    cihaz_kaydet(c)
+    return None
+
+# ── ağda TV'nin markasını/modelini bulma (UPnP) ──
+def upnp_bilgileri(ipler, sure=2.5):
+    """SSDP ile cihazların açıklama dosyasını bulur: {ip: {'marka','model','ad'}}"""
+    import urllib.request
+    yerler = {}
+    try:
+        u = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        u.settimeout(0.3)
+        ara = ('M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: 1\r\n'
+               'ST: %s\r\n\r\n')
+        for st in ('ssdp:all', 'urn:dial-multiscreen-org:service:dial:1', 'urn:schemas-upnp-org:device:MediaRenderer:1'):
+            for hedef in ['239.255.255.250'] + list(ipler):
+                try:
+                    u.sendto((ara % st).encode(), (hedef, 1900))
+                except Exception:
+                    pass
+        son = time.time() + sure
+        while time.time() < son:
+            try:
+                v, (ip, _) = u.recvfrom(4096)
+            except socket.timeout:
+                continue
+            except Exception:
+                break
+            if ip in ipler:
+                m = re.search(rb'(?im)^location:\s*(\S+)', v)
+                if m:
+                    yerler.setdefault(ip, set()).add(m.group(1).decode('utf-8', 'replace'))
+        u.close()
+    except Exception:
+        pass
+    for ip in ipler:      # VIDAA açıklama dosyası sabit adreste
+        yerler.setdefault(ip, set()).add('http://%s:38400/MediaServer/rendererdevicedesc.xml' % ip)
+    sonuc = {}
+    def oku(ip):
+        b = {}
+        for yer in sorted(yerler.get(ip, ()))[:6]:
+            if urlparse(yer).hostname != ip:
+                continue
+            try:
+                with urllib.request.urlopen(yer, timeout=2) as y:
+                    x = y.read(131072).decode('utf-8', 'replace')
+            except Exception:
+                continue
+            for etiket, a in (('manufacturer', 'marka'), ('modelName', 'model'), ('friendlyName', 'ad')):
+                m = re.search(r'<%s>\s*([^<]+?)\s*</%s>' % (etiket, etiket), x)
+                if m and not b.get(a):
+                    b[a] = m.group(1)
+            if b.get('marka') and b.get('model'):
+                break
+        return ip, b
+    with concurrent.futures.ThreadPoolExecutor(8) as h:
+        for ip, b in h.map(oku, list(ipler)):
+            if b:
+                sonuc[ip] = b
+    return sonuc
+
+def toshiba_sistemi(adres):
+    """Toshiba TV'nin hangi sistemle çalıştığını açık portlarından anlar."""
+    if port_acik(adres, 6466, 1.2) or port_acik(adres, 6467, 1.2):
+        return 'androidtv'
+    if port_acik(adres, 36669, 1.2):
+        return 'vidaa'
+    if port_acik(adres, 56789, 1.2):
+        return 'smartcenter'
+    return None
+
 # ───────────────────────── cihaz listesi ─────────────────────────
+# Ayar dosyasında: "cihazlar": [{"id", "tur", "ad", "adres", "mac", …türe özel eşleşme bilgileri}]
 CIHAZLAR = {}
 cihaz_kilit = threading.Lock()
+TURLER = ('lg', 'adb', 'androidtv', 'vidaa', 'smartcenter')
+TOSHIBA_TURLERI = ('androidtv', 'vidaa', 'smartcenter')
 
-def cihazlari_yukle():
-    with cihaz_kilit:
-        CIHAZLAR.clear()
-        p = AYAR.get('projeksiyon')
-        if p and p.get('adres'):
-            CIHAZLAR['projeksiyon'] = ADBCihaz('projeksiyon', p.get('ad') or 'Projeksiyon', p['adres'])
-        t = AYAR.get('tv')
-        if t and t.get('adres'):
-            CIHAZLAR['tv'] = LGTV('tv', t.get('ad') or 'LG TV', t['adres'], t.get('anahtar'), t.get('mac'))
-
-def cihaz_kaydet(c):
-    if isinstance(c, LGTV):
-        AYAR['tv'] = {'ad': c.ad, 'adres': c.adres, 'anahtar': c.anahtar, 'mac': c.mac}
-    else:
-        AYAR['projeksiyon'] = {'ad': c.ad, 'adres': c.adres}
+def ayar_gocu():
+    """Eski sürümün tek TV + tek projeksiyon ayarını cihaz listesine taşır."""
+    if isinstance(AYAR.get('cihazlar'), list):
+        return
+    liste = []
+    t = AYAR.get('tv')
+    if t and t.get('adres'):
+        liste.append({'id': 'tv', 'tur': 'lg', 'ad': t.get('ad') or 'LG TV', 'adres': t['adres'],
+                      'anahtar': t.get('anahtar'), 'mac': t.get('mac')})
+    p = AYAR.get('projeksiyon')
+    if p and p.get('adres'):
+        liste.append({'id': 'projeksiyon', 'tur': 'adb', 'ad': p.get('ad') or 'Projeksiyon', 'adres': p['adres']})
+    AYAR['cihazlar'] = liste
+    AYAR.pop('tv', None)
+    AYAR.pop('projeksiyon', None)
     try:
         ayar_yaz(AYAR)
     except Exception:
         pass
 
-def cihaz_ayarla(proj_adres, tv_adres, tv_mac):
-    """Sayfadaki ⚙ menüsünden gelen adresleri uygular. Boş alan = o cihazı kaldır."""
-    proj_adres = (proj_adres or '').strip()
-    tv_adres = (tv_adres or '').strip()
-    if proj_adres and ':' not in proj_adres:
-        proj_adres += ':5555'
-    if proj_adres and not re.match(r'^[\w.\-]+:\d+$', proj_adres):
-        return 'Projeksiyon adresi geçersiz (örnek: 192.168.1.40:5555)'
-    if tv_adres and not re.match(r'^[\w.\-]+$', tv_adres):
-        return 'TV adresi geçersiz (örnek: 192.168.1.50)'
-    mac = mac_duzelt(tv_mac) if tv_mac else None
-    if tv_mac and not mac:
-        return 'MAC adresi geçersiz (örnek: a8:23:fe:12:34:56)'
+def cihaz_olustur(k):
+    t = k.get('tur')
+    if t == 'lg':
+        c = LGTV(k['id'], k.get('ad') or 'LG TV', k['adres'], k.get('anahtar'), k.get('mac'))
+        c.k = dict(k)
+        return c
+    if t == 'adb':
+        return ADBCihaz(k['id'], k.get('ad') or 'Projeksiyon', k['adres'])
+    sinif = {'androidtv': AndroidTVCihaz, 'vidaa': VidaaCihaz, 'smartcenter': SmartCenterCihaz}.get(t)
+    return sinif(k) if sinif else None
 
-    if proj_adres:
-        eski = AYAR.get('projeksiyon') or {}
-        AYAR['projeksiyon'] = {'ad': eski.get('ad') or 'Projeksiyon', 'adres': proj_adres}
+def cihazlari_yukle():
+    ayar_gocu()
+    with cihaz_kilit:
+        for c in CIHAZLAR.values():
+            try:
+                if getattr(c, 'ws', None):
+                    c.ws.kapat()
+                getattr(c, 'kapat', lambda: None)()
+            except Exception:
+                pass
+        CIHAZLAR.clear()
+        for k in AYAR.get('cihazlar') or []:
+            if isinstance(k, dict) and k.get('id') and k.get('adres'):
+                c = cihaz_olustur(k)
+                if c:
+                    CIHAZLAR[k['id']] = c
+
+def cihaz_kaydet(c):
+    liste = AYAR.setdefault('cihazlar', [])
+    if isinstance(c, LGTV):
+        yeni = dict(getattr(c, 'k', {}) or {})
+        yeni.update(id=c.id, tur='lg', ad=c.ad, adres=c.adres, anahtar=c.anahtar, mac=c.mac)
+    elif isinstance(c, ADBCihaz):
+        yeni = {'id': c.id, 'tur': 'adb', 'ad': c.ad, 'adres': c.adres}
     else:
-        AYAR.pop('projeksiyon', None)
-    if tv_adres:
-        eski = AYAR.get('tv') or {}
-        ayni = eski.get('adres') == tv_adres
-        AYAR['tv'] = {'ad': eski.get('ad') or 'LG TV', 'adres': tv_adres,
-                      'anahtar': eski.get('anahtar') if ayni else None,
-                      'mac': mac or (eski.get('mac') if ayni else None)}
+        yeni = c.kayit()
+    for i, k in enumerate(liste):
+        if k.get('id') == c.id:
+            liste[i] = yeni
+            break
     else:
-        AYAR.pop('tv', None)
+        liste.append(yeni)
+    try:
+        ayar_yaz(AYAR)
+    except Exception:
+        pass
+
+def _yeni_kimlik(tur):
+    var = {k.get('id') for k in AYAR.get('cihazlar') or []}
+    tercih = {'lg': 'tv', 'adb': 'projeksiyon'}.get(tur, tur)
+    if tercih not in var:
+        return tercih
+    i = 2
+    while '%s%d' % (tercih, i) in var:
+        i += 1
+    return '%s%d' % (tercih, i)
+
+def cihaz_ekle(tur, adres, ad='', mac=''):
+    """⚙ → Cihaz ekle. tur: lg / adb / toshiba (sistem otomatik) / androidtv / vidaa / smartcenter"""
+    tur, adres = (tur or '').strip(), (adres or '').strip()
+    ad = re.sub(r'\s+', ' ', ad or '').strip()[:30]
+    if tur == 'adb' and adres and ':' not in adres:
+        adres += ':5555'
+    if not adres or not re.match(r'^[\w.\-]+(:\d+)?$', adres) or (tur != 'adb' and ':' in adres):
+        return None, 'Adres geçersiz (örnek: 192.168.1.50)'
+    m = mac_duzelt(mac) if mac else None
+    if mac and not m:
+        return None, 'MAC adresi geçersiz (örnek: a8:23:fe:12:34:56)'
+    if tur == 'toshiba':
+        tur = toshiba_sistemi(adres)
+        if not tur:
+            return None, ('TV\'ye ulaşılamadı. TV açık ve aynı Wi‑Fi\'da olmalı. Google TV\'de: Ayarlar → Sistem → '
+                          '"Uzaktan kumanda / Google TV uygulaması"; VIDAA\'da: Ayarlar → Ağ → "Mobil cihazla kontrol" açık olmalı.')
+        ad = ad or 'Toshiba TV'
+    if tur not in TURLER:
+        return None, 'Bilinmeyen cihaz türü'
+    liste = AYAR.setdefault('cihazlar', [])
+    for k in liste:
+        if k.get('tur') == tur and k.get('adres') == adres:
+            if m:
+                k['mac'] = m
+                ayar_yaz(AYAR)
+                cihazlari_yukle()
+            return k['id'], None
+    ad = ad or {'lg': 'LG TV', 'adb': 'Projeksiyon'}.get(tur, 'Toshiba TV')
+    adlar = {k.get('ad') for k in liste}
+    if ad in adlar:
+        i = 2
+        while '%s %d' % (ad, i) in adlar:
+            i += 1
+        ad = '%s %d' % (ad, i)
+    k = {'id': _yeni_kimlik(tur), 'tur': tur, 'ad': ad, 'adres': adres}
+    if m:
+        k['mac'] = m
+    liste.append(k)
     ayar_yaz(AYAR)
-    eski_tv = CIHAZLAR.get('tv')
-    if eski_tv and eski_tv.ws:
-        eski_tv.ws.kapat()
+    c = cihaz_olustur(k)
+    with cihaz_kilit:
+        CIHAZLAR[k['id']] = c
+    c.baglan_arkada()
+    if tur != 'adb':
+        akis_hazirla()
+    return k['id'], None
+
+def cihaz_sil(cid):
+    AYAR['cihazlar'] = [k for k in AYAR.get('cihazlar') or [] if k.get('id') != cid]
+    ayar_yaz(AYAR)
+    c = CIHAZLAR.pop(cid, None)
+    if c:
+        try:
+            if getattr(c, 'ws', None):
+                c.ws.kapat()
+            getattr(c, 'kapat', lambda: None)()
+        except Exception:
+            pass
+    return c is not None
+
+def cihaz_yeniden_adlandir(cid, ad):
+    ad = re.sub(r'\s+', ' ', ad or '').strip()[:30]
+    c = CIHAZLAR.get(cid)
+    if not c or not ad:
+        return False
+    c.ad = ad
+    cihaz_kaydet(c)
+    return True
+
+def cihaz_ayarla(proj_adres, tv_adres, tv_mac):
+    """Eski kumanda sayfasının ⚙ menüsü (tek LG TV + tek projeksiyon). Yeni sayfa /ekle ve /sil kullanır."""
+    proj_adres, tv_adres = (proj_adres or '').strip(), (tv_adres or '').strip()
+    liste = AYAR.setdefault('cihazlar', [])
+    for tur, adres, kid in (('adb', proj_adres, 'projeksiyon'), ('lg', tv_adres, 'tv')):
+        eski = next((k for k in liste if k.get('id') == kid), None)
+        if not adres:
+            if eski:
+                cihaz_sil(kid)
+            continue
+        if eski and eski.get('adres') == (adres if tur == 'lg' or ':' in adres else adres + ':5555'):
+            if tur == 'lg' and tv_mac:
+                m = mac_duzelt(tv_mac)
+                if not m:
+                    return 'MAC adresi geçersiz (örnek: a8:23:fe:12:34:56)'
+                eski['mac'] = m
+                ayar_yaz(AYAR)
+            continue
+        if eski:
+            cihaz_sil(kid)
+        _, hata = cihaz_ekle(tur, adres, '', tv_mac if tur == 'lg' else '')
+        if hata:
+            return hata
     cihazlari_yukle()
     for c in CIHAZLAR.values():
         c.baglan_arkada()
@@ -1318,11 +2759,17 @@ class H(BaseHTTPRequestHandler):
         elif not self.izinli(q):
             self.yanit(403, {'ok': False, 'hata': 'anahtar'})
         elif yol.path == '/durum':
-            d = {'surum': 8, 'adb': ADB_VAR,
-                 'cihazlar': [c.ozet() for c in list(CIHAZLAR.values())],
-                 'ayar': {'projeksiyon': (AYAR.get('projeksiyon') or {}).get('adres', ''),
-                          'tv': (AYAR.get('tv') or {}).get('adres', ''),
-                          'mac': (AYAR.get('tv') or {}).get('mac') or ''}}
+            ozetler = []
+            for c in list(CIHAZLAR.values()):
+                o = c.ozet()
+                o['sistem'] = SISTEM_ADI.get(c.tur, c.tur)
+                ozetler.append(o)
+            liste = AYAR.get('cihazlar') or []
+            ilk = lambda t: next((k for k in liste if k.get('tur') == t), {})
+            d = {'surum': 9, 'adb': ADB_VAR, 'cihazlar': ozetler,
+                 # eski kumanda sayfası için
+                 'ayar': {'projeksiyon': ilk('adb').get('adres', ''), 'tv': ilk('lg').get('adres', ''),
+                          'mac': ilk('lg').get('mac') or ''}}
             if self.yerel_sayfadan():
                 ip = yerel_ip()
                 if ip and ev_agi_mi(ip):
@@ -1333,22 +2780,31 @@ class H(BaseHTTPRequestHandler):
             self.yanit(200, ag_tara())
         elif yol.path == '/girisler':
             c = CIHAZLAR.get(q.get('c'))
-            self.yanit(200, {'girisler': c.girisler() if isinstance(c, LGTV) else []})
+            self.yanit(200, {'girisler': c.girisler() if c is not None and hasattr(c, 'girisler') and c.durum == 'bagli' else []})
         elif yol.path == '/kanallar':
             c = CIHAZLAR.get(q.get('c'))
-            self.yanit(200, c.kanallar() if isinstance(c, LGTV) else {'kanallar': [], 'hata': 'Kanal listesi yalnızca LG TV\'de var'})
+            if isinstance(c, LGTV):
+                self.yanit(200, c.kanallar())
+            elif c is not None and c.tur in TOSHIBA_TURLERI:
+                self.yanit(200, elle_kanallar(c))
+            else:
+                self.yanit(200, {'kanallar': [], 'hata': 'Bu cihazda kanal listesi yok'})
         elif yol.path == '/tani':
             c = CIHAZLAR.get(q.get('c'))
             if not c:
                 self.yanit(200, {'hata': 'cihaz yok'})
             else:
+                tuslar = LG_TUS if c.tur == 'lg' else ADB_TUS if c.tur == 'adb' else c.TUSLAR
                 self.yanit(200, {'tur': c.tur, 'bilgi': getattr(c, 'bilgi', {}), 'sonuclar': c.sonuclar,
-                                 'tuslar': sorted(LG_TUS if c.tur == 'lg' else ADB_TUS)})
+                                 'tuslar': sorted(tuslar)})
         elif yol.path == '/uygulamalar':
             c = CIHAZLAR.get(q.get('c'))
             if isinstance(c, LGTV) and c.durum == 'bagli':
                 liste = c.uygulamalari_al() if q.get('yenile') or not c.uygulamalar else c.uygulamalar
                 self.yanit(200, {'uygulamalar': [{'id': a['id'], 'ad': a['ad'], 'ikon': bool(a.get('ikon')), 'renk': a.get('renk', '')} for a in liste]})
+            elif c is not None and c.tur in TOSHIBA_TURLERI:
+                liste = c.uygulamalari_al() if (q.get('yenile') or not c.uygulamalar) and c.durum == 'bagli' else (c.uygulamalar or c.uygulamalari_al())
+                self.yanit(200, {'uygulamalar': [{'id': a['id'], 'ad': a['ad'], 'ikon': False, 'renk': a.get('renk', '')} for a in liste]})
             else:
                 self.yanit(200, {'uygulamalar': [], 'hata': 'TV bağlı değil'})
         elif yol.path == '/ikon':
@@ -1366,7 +2822,12 @@ class H(BaseHTTPRequestHandler):
                 self.yanit(404, {})
         elif yol.path == '/simdiki':
             c = CIHAZLAR.get(q.get('c'))
-            self.yanit(200, {'simdiki': c.simdiki_kanal() if isinstance(c, LGTV) and c.durum == 'bagli' else ''})
+            s = ''
+            if isinstance(c, LGTV) and c.durum == 'bagli':
+                s = c.simdiki_kanal()
+            elif c is not None and c.tur in TOSHIBA_TURLERI:
+                s = elle_kanallar(c)['simdiki']
+            self.yanit(200, {'simdiki': s})
         else:
             self.yanit(404, {})
 
@@ -1386,28 +2847,66 @@ class H(BaseHTTPRequestHandler):
             hata = cihaz_ayarla(v.get('projeksiyon'), v.get('tv'), v.get('mac'))
             self.yanit(200, {'ok': hata is None, 'hata': hata})
             return
+        if self.path == '/ekle':
+            try:
+                cid, hata = cihaz_ekle(v.get('tur'), v.get('adres'), v.get('ad'), v.get('mac'))
+            except Exception as e:
+                cid, hata = None, str(e)
+            self.yanit(200, {'ok': hata is None, 'id': cid, 'hata': hata})
+            return
+        if self.path == '/sil':
+            self.yanit(200, {'ok': cihaz_sil(v.get('c', ''))})
+            return
+        if self.path == '/ad':
+            self.yanit(200, {'ok': cihaz_yeniden_adlandir(v.get('c', ''), v.get('ad', ''))})
+            return
         c = CIHAZLAR.get(v.get('c'))
         if c is None:
             self.yanit(200, {'ok': False, 'hata': 'Cihaz seçilmedi ya da ayarlanmadı'})
             return
-        ok = False
+        ok, neden = False, ''
+        toshiba = c.tur in TOSHIBA_TURLERI
         try:
             if self.path == '/tus':
                 ok = c.tus(v.get('t', ''))
             elif self.path == '/yazi':
                 ok = c.yazi(v.get('t', '')[:500])
             elif self.path == '/baglan':
+                if toshiba and c.durum == 'kod':      # "Yeni kod iste"
+                    c.kapat()
+                    c.durum, c.kod_bilgi = 'kapali', None
+                if getattr(c, 'durum', '') in ('hata', 'kapali'):
+                    c.son_deneme = 0
                 c.baglan_arkada()
                 ok = True
+            elif self.path == '/eslestir':
+                ok, neden = c.kod_gir(v.get('kod', '')) if toshiba else (False, 'Bu cihaz kodla eşleşmiyor')
             elif self.path == '/uygulama':
                 ok = c.uygulama(v.get('id', ''))
             elif self.path == '/ac':
                 url = v.get('url') or CANLI_TV_URL
                 ok = c.adres_ac(url) if url.startswith(('http://', 'https://')) else False
-            elif self.path == '/giris' and isinstance(c, LGTV):
+            elif self.path == '/giris' and hasattr(c, 'giris_sec'):
                 ok = c.giris_sec(v.get('id', ''))
             elif self.path == '/kanal' and isinstance(c, LGTV):
                 ok = c.kanal_ac(v.get('id', ''))
+            elif self.path == '/kanal' and toshiba:
+                ok = elle_kanal_ac(c, v.get('id', ''))
+                if not ok:
+                    neden = (c.sonuclar.get('KANAL') or {}).get('hata', '')
+            elif self.path == '/kanal_no' and toshiba:
+                neden = elle_kanal_duzenle(c, v.get('ad'), v.get('no'), v.get('sil') == '1') or ''
+                ok = not neden
+            elif self.path == '/kanal_ogren' and toshiba:
+                if v.get('iptal') == '1':
+                    if c.ogrenme:
+                        c.ogrenme['iptal'] = True
+                    ok = True
+                elif not getattr(c, 'ogrenebilir', False):
+                    neden = 'Bu TV kanal adını bildirmiyor; numaraları elle gir'
+                else:
+                    ok = c.kanal_ogren(int(sayi(v, 'adet', 60, 5, 300)))
+                    neden = '' if ok else 'Öğrenme zaten sürüyor'
             elif self.path == '/imlec' and isinstance(c, LGTV):
                 ok = c.imlec_hareket(sayi(v, 'dx', 0, -300, 300), sayi(v, 'dy', 0, -300, 300))
             elif self.path == '/tikla' and isinstance(c, LGTV):
@@ -1425,9 +2924,9 @@ class H(BaseHTTPRequestHandler):
         except Exception as e:
             self.yanit(200, {'ok': False, 'hata': str(e)})
             return
-        neden = ''
-        if not ok:
-            anahtar = {'/yazi': 'YAZI', '/tus': v.get('t', ''), '/uygulama': 'UYG:' + v.get('id', ''), '/ac': 'ADRES'}.get(self.path)
+        if not ok and not neden:
+            anahtar = {'/yazi': 'YAZI', '/tus': v.get('t', ''), '/uygulama': 'UYG:' + v.get('id', ''), '/ac': 'ADRES',
+                       '/giris': 'GIRIS'}.get(self.path)
             neden = ((getattr(c, 'sonuclar', {}) or {}).get(anahtar) or {}).get('hata', '') if anahtar else ''
         self.yanit(200, {'ok': bool(ok), 'durum': c.durum, 'mesaj': c.mesaj, 'hata': neden})
 
@@ -1438,42 +2937,51 @@ def main():
     args = sys.argv[1:]
     if args and args[0] in ('-h', '--help', 'yardim'):
         print('python kumanda.py              → köprüyü başlatır\n'
-              'python kumanda.py --tara       → ağdaki projeksiyon/TV\'leri bulur\n'
-              'python kumanda.py --tv IP      → LG TV adresini kaydeder\n'
-              'python kumanda.py --mac MAC    → TV\'yi açmak için MAC adresini kaydeder\n'
-              'python kumanda.py IP:5555      → projeksiyon adresini kaydeder')
+              'python kumanda.py --tara       → ağdaki TV/projeksiyonları bulur\n'
+              'python kumanda.py --tv IP      → LG TV ekler\n'
+              'python kumanda.py --toshiba IP → Toshiba TV ekler (sistemi kendisi bulur)\n'
+              'python kumanda.py IP:5555      → projeksiyon (ADB) ekler')
         return
+    ayar_gocu()
     if args and args[0] == '--tara':
         print('Ağ taranıyor…')
         r = ag_tara()
-        print('Projeksiyon/Android (ADB):', ', '.join(r['adb']) or 'bulunamadı')
-        print('LG TV:', ', '.join(r['lg']) or 'bulunamadı')
+        if r.get('hata'):
+            print(r['hata'])
+        for c in r.get('cihazlar', []):
+            print('•', c['ad'], '·', c['sistem'], '→', c['adres'], ('(%s %s)' % (c['marka'], c['model'])).replace('( )', ''))
+        if not r.get('cihazlar') and not r.get('hata'):
+            print('Cihaz bulunamadı.')
         return
     i = 0
     while i < len(args):
         a = args[i]
-        if a == '--tv' and i + 1 < len(args):
-            AYAR['tv'] = {'ad': 'LG TV', 'adres': args[i + 1], 'anahtar': None,
-                          'mac': (AYAR.get('tv') or {}).get('mac')}
+        if a in ('--tv', '--toshiba') and i + 1 < len(args):
+            _, hata = cihaz_ekle('lg' if a == '--tv' else 'toshiba', args[i + 1])
+            if hata:
+                print(hata)
             i += 2
         elif a == '--mac' and i + 1 < len(args):
-            AYAR.setdefault('tv', {'ad': 'LG TV', 'adres': ''})['mac'] = mac_duzelt(args[i + 1])
+            for k in AYAR.get('cihazlar') or []:
+                if k.get('tur') == 'lg':
+                    k['mac'] = mac_duzelt(args[i + 1])
+            ayar_yaz(AYAR)
             i += 2
         else:
-            AYAR['projeksiyon'] = {'ad': 'Projeksiyon', 'adres': a if ':' in a else a + ':5555'}
+            _, hata = cihaz_ekle('adb', a)
+            if hata:
+                print(hata)
             i += 1
-    if args:
-        ayar_yaz(AYAR)
 
     ADB_VAR = adb_var()
     cihazlari_yukle()
     if not CIHAZLAR:
         print('Henüz cihaz eklenmedi. Kumanda sayfasındaki ⚙ menüsünden ekleyebilirsin.')
     for c in CIHAZLAR.values():
-        print('•', c.ad, '→', c.adres)
+        print('•', c.ad, '(%s)' % SISTEM_ADI.get(c.tur, c.tur), '→', c.adres)
         c.baglan_arkada()
     erisim_anahtari()
-    if 'tv' in CIHAZLAR:
+    if any(c.tur != 'adb' for c in CIHAZLAR.values()):
         akis_hazirla()   # yayın akışını arkada indir
     print('\nKumanda hazır → tarayıcıda aç: http://127.0.0.1:%d' % PORT)
     ip = yerel_ip()
