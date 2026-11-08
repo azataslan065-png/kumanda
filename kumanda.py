@@ -2747,6 +2747,244 @@ def ekran_bilgisi(c):
             out['kanal'] = {'ad': ad, 'no': no, 'akis': kanal_akisi(ad)[:2]}
     return out
 
+# ───────────────────────── YouTube (TV'deki YouTube uygulamasıyla eşleşme) ─────────────────────────
+# Telefondaki YouTube uygulamasının "TV'de izle" özelliğiyle aynı yol (YouTube Lounge). Kumanda TV'deki YouTube'a
+# bir kez bağlanınca TV hangi videoyu, kaçıncı saniyede, oynatıyor mu duraklatılmış mı — anında bildirir.
+# Bağlantı iki yoldan kurulur: TV'nin DIAL servisi (kendiliğinden) ya da TV'deki YouTube'un gösterdiği "TV kodu".
+YT_API = 'https://www.youtube.com/api/lounge'
+
+def _yt_istek(yol, form=None, params=None, sure=15, akis=False):
+    import urllib.request, urllib.parse
+    url = YT_API + yol + ('?' + urllib.parse.urlencode(params) if params else '')
+    veri = urllib.parse.urlencode(form).encode() if form is not None else None
+    istek = urllib.request.Request(url, data=veri, headers={'User-Agent': 'Mozilla/5.0 (Linux; Android 14) kumanda'})
+    y = urllib.request.urlopen(istek, timeout=sure)
+    return y if akis else y.read().decode('utf-8', 'replace')
+
+def _yt_olaylar(satirlar):
+    """'uzunluk\\n[json]' parçalarını çözer: [[sıra, [olay, veri…]], …]"""
+    tampon = ''
+    for satir in satirlar:
+        if not tampon and satir.strip().isdigit():
+            continue
+        tampon += satir
+        try:
+            parca = json.loads(tampon)
+        except ValueError:
+            continue
+        tampon = ''
+        for o in parca:
+            yield o
+
+def dial_youtube_ekran(adres, sure=3):
+    """TV'nin DIAL servisinden YouTube ekran kimliği (YouTube uygulaması açıkken verir)."""
+    import urllib.request
+    yerler = set()
+    try:
+        u = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        u.settimeout(0.4)
+        m = ('M-SEARCH * HTTP/1.1\r\nHOST: 239.255.255.250:1900\r\nMAN: "ssdp:discover"\r\nMX: 1\r\n'
+             'ST: urn:dial-multiscreen-org:service:dial:1\r\n\r\n').encode()
+        for h in (adres, '239.255.255.250'):
+            u.sendto(m, (h, 1900))
+        son = time.time() + sure
+        while time.time() < son:
+            try:
+                v, (ip, _) = u.recvfrom(4096)
+            except socket.timeout:
+                continue
+            if ip == adres:
+                k = re.search(rb'(?im)^location:\s*(\S+)', v)
+                if k:
+                    yerler.add(k.group(1).decode())
+        u.close()
+    except Exception:
+        pass
+    for yer in yerler:
+        try:
+            with urllib.request.urlopen(yer, timeout=3) as y:
+                uygulama = y.headers.get('Application-URL')
+            if not uygulama:
+                continue
+            with urllib.request.urlopen(uygulama.rstrip('/') + '/YouTube', timeout=3) as y:
+                x = y.read(65536).decode('utf-8', 'replace')
+            k = re.search(r'<screenId>([^<]+)</screenId>', x)
+            if k:
+                return k.group(1).strip()
+        except Exception:
+            continue
+    return None
+
+class YouTubeBag:
+    """Bir TV'deki YouTube uygulamasıyla Lounge bağlantısı."""
+    def __init__(self, cihaz):
+        self.c = cihaz
+        k = (AYAR.get('youtube') or {}).get(cihaz.id) or {}
+        self.ekran_id = k.get('ekran')
+        self.cihaz_id = k.get('cihaz') or secrets.token_hex(16)
+        self.ekran_adi = k.get('ad', '')
+        self.jeton = None
+        self.sid = self.gs = None
+        self.aid = 0
+        self.durum = 'yok' if not self.ekran_id else 'baglaniyor'
+        self.mesaj = ''
+        self.video = None   # {'id','zaman','sure','durum','alindi'}
+        self.calisiyor = False
+        self.kilit = threading.Lock()
+
+    def kaydet(self):
+        AYAR.setdefault('youtube', {})[self.c.id] = {'ekran': self.ekran_id, 'cihaz': self.cihaz_id, 'ad': self.ekran_adi}
+        ayar_yaz(AYAR)
+
+    def ozet(self):
+        v = dict(self.video) if self.video else None
+        if v:
+            v['simdi'] = round(v['zaman'] + (time.time() - v['alindi']) * (1 if v['durum'] == 1 else 0), 2)
+            v['yas'] = round(time.time() - v['alindi'], 1)
+        return {'durum': self.durum, 'mesaj': self.mesaj, 'ad': self.ekran_adi, 'video': v}
+
+    # — eşleşme —
+    def kod_ile(self, kod):
+        kod = re.sub(r'\D', '', str(kod or ''))
+        if len(kod) < 8:
+            return False, 'TV kodu 12 rakam olmalı'
+        try:
+            d = json.loads(_yt_istek('/pairing/get_screen', {'pairing_code': kod}))
+            s = d['screen']
+        except Exception:
+            return False, 'Kod kabul edilmedi. TV\'deki YouTube\'da kodu yeniden göster ve tekrar dene.'
+        self.ekran_id, self.jeton, self.ekran_adi = s['screenId'], s.get('loungeToken'), s.get('name', '')
+        self.kaydet()
+        self.baslat()
+        return True, ''
+
+    def dial_ile(self):
+        e = dial_youtube_ekran(self.c.adres)
+        if not e:
+            return False, 'TV kendiliğinden bağlanmadı. TV\'deki YouTube\'da Ayarlar → "Telefonu TV\'ye bağla" → "TV kodu ile bağla"daki kodu yaz.'
+        self.ekran_id = e
+        self.kaydet()
+        self.baslat()
+        return True, ''
+
+    def unut(self):
+        self.ekran_id = None
+        self.durum, self.video = 'yok', None
+        (AYAR.get('youtube') or {}).pop(self.c.id, None)
+        ayar_yaz(AYAR)
+
+    # — bağlantı ve dinleme —
+    def baslat(self):
+        with self.kilit:
+            if self.calisiyor or not self.ekran_id:
+                return
+            self.calisiyor = True
+        threading.Thread(target=self._dongu, daemon=True).start()
+
+    def _jeton_yenile(self):
+        d = json.loads(_yt_istek('/pairing/get_lounge_token_batch', {'screen_ids': self.ekran_id}))
+        s = d['screens'][0]
+        self.jeton = s['loungeToken']
+
+    def _ortak(self):
+        return {'name': 'Kumanda', 'loungeIdToken': self.jeton, 'SID': self.sid, 'AID': self.aid,
+                'gsessionid': self.gs, 'device': 'REMOTE_CONTROL', 'app': 'youtube-desktop', 'VER': '8', 'v': '2'}
+
+    def _isle(self, olaylar):
+        for sira, (olay, *veri) in olaylar:
+            self.aid = sira
+            d = veri[0] if veri else {}
+            if olay == 'c':
+                self.sid = d
+            elif olay == 'S':
+                self.gs = d
+            elif olay in ('nowPlaying', 'onStateChange') and isinstance(d, dict):
+                vid = d.get('videoId') or (self.video or {}).get('id')
+                if olay == 'nowPlaying' and not d.get('videoId'):
+                    self.video = None
+                    continue
+                try:
+                    self.video = {'id': vid, 'zaman': float(d.get('currentTime') or 0), 'sure': float(d.get('duration') or 0),
+                                  'durum': int(d.get('state', -1)), 'alindi': time.time()}
+                except (TypeError, ValueError):
+                    pass
+            elif olay == 'loungeScreenDisconnected':
+                self.video = None
+            elif olay == 'loungeStatus' and isinstance(d, dict):
+                try:
+                    for e in json.loads(d.get('devices', '[]')):
+                        if e.get('type') == 'LOUNGE_SCREEN' and e.get('name'):
+                            self.ekran_adi = e['name']
+                except Exception:
+                    pass
+
+    def komut(self, ad, **p):
+        if not self.sid:
+            return False
+        govde = {'count': 1, 'ofs': self.ofs, 'req0__sc': ad}
+        for a, v in p.items():
+            govde['req0_' + a] = v
+        self.ofs += 1
+        try:
+            _yt_istek('/bc/bind', govde, dict(self._ortak(), RID=self.ofs))
+            return True
+        except Exception:
+            return False
+
+    def _dongu(self):
+        import urllib.error
+        bekle = 2
+        try:
+            while self.ekran_id and self.c.id in CIHAZLAR:
+                try:
+                    if not self.jeton:
+                        self._jeton_yenile()
+                    self.sid = self.gs = None
+                    self.aid, self.ofs = 0, 1
+                    govde = {'app': 'web', 'mdx-version': '3', 'name': 'Kumanda', 'id': self.cihaz_id,
+                             'device': 'REMOTE_CONTROL', 'capabilities': 'que,dsdtr,atp', 'magnaKey': 'cloudPairedDevice',
+                             'ui': 'false', 'theme': 'cl', 'loungeIdToken': self.jeton}
+                    try:
+                        metin = _yt_istek('/bc/bind', govde, {'RID': 1, 'VER': 8, 'CVER': 1, 'auth_failure_option': 'send_error'})
+                    except urllib.error.HTTPError as e:
+                        if e.code in (401, 403):
+                            self.jeton = None
+                        raise
+                    self._isle(_yt_olaylar(metin.splitlines()))
+                    if not self.sid:
+                        raise ConnectionError('YouTube bağlantıyı açmadı')
+                    self.durum, self.mesaj, bekle = 'bagli', '', 2
+                    self.komut('getNowPlaying')
+                    # uzun süreli dinleme: TV her değişiklikte olay gönderir
+                    while self.sid:
+                        try:
+                            y = _yt_istek('/bc/bind', None, dict(self._ortak(), RID='rpc', CI='0', TYPE='xmlhttp'), sure=90, akis=True)
+                        except urllib.error.HTTPError as e:
+                            if e.code in (400, 404, 410):
+                                break                        # oturum bitti → yeniden bağlan
+                            if e.code == 401:
+                                self.jeton = None
+                                break
+                            raise
+                        with y:
+                            self._isle(_yt_olaylar(l.decode('utf-8', 'replace') for l in iter(y.readline, b'')))
+                except Exception as e:
+                    self.durum, self.mesaj = 'baglaniyor', 'YouTube\'a bağlanılamadı: %s' % e
+                    time.sleep(bekle)
+                    bekle = min(bekle * 2, 60)
+        finally:
+            self.calisiyor = False
+
+YOUTUBE = {}
+
+def youtube_bag(c):
+    b = YOUTUBE.get(c.id)
+    if b is None or b.c is not c:
+        b = YOUTUBE[c.id] = YouTubeBag(c)
+    if b.ekran_id:
+        b.baslat()
+    return b
+
 # ── ağda TV'nin markasını/modelini bulma (UPnP) ──
 def upnp_bilgileri(ipler, sure=2.5):
     """SSDP ile cihazların açıklama dosyasını bulur: {ip: {'marka','model','ad'}}"""
@@ -3122,7 +3360,7 @@ class H(BaseHTTPRequestHandler):
                 ozetler.append(o)
             liste = AYAR.get('cihazlar') or []
             ilk = lambda t: next((k for k in liste if k.get('tur') == t), {})
-            d = {'surum': 12, 'bildirimler': BILDIRIMLER[-3:], 'adb': ADB_VAR, 'cihazlar': ozetler,
+            d = {'surum': 13, 'bildirimler': BILDIRIMLER[-3:], 'adb': ADB_VAR, 'cihazlar': ozetler,
                  # eski kumanda sayfası için
                  'ayar': {'projeksiyon': ilk('adb').get('adres', ''), 'tv': ilk('lg').get('adres', ''),
                           'mac': ilk('lg').get('mac') or ''}}
@@ -3196,12 +3434,30 @@ class H(BaseHTTPRequestHandler):
             else:
                 d = ekran_bilgisi(c)
                 d['bagli'] = True
-                # Kumandadan TV'ye gönderilen YouTube videosu hâlâ açıksa: telefonda da aynı yerden izlenebilsin
-                y = getattr(c, 'son_youtube', None)
                 app = (d.get('uygulama') or '').lower()
-                if y and time.time() - y['zaman'] < 4 * 3600 and ('youtube' in app or (not app and not d.get('kanal'))):
-                    d['youtube'] = {'id': y['id'], 'gecen': int(time.time() - y['zaman'])}
+                yb = youtube_bag(c)
+                d['youtube_eslesik'] = bool(yb.ekran_id)
+                v = yb.ozet()['video'] if yb.durum == 'bagli' else None
+                if v and v.get('id') and v['durum'] in (1, 2, 3, 0) and ('youtube' in app or not app or c.tur != 'lg'):
+                    # TV'deki YouTube'un kendisinden: hangi video, kaçıncı saniye, oynuyor mu
+                    d['youtube'] = {'id': v['id'], 'simdi': v['simdi'], 'durum': v['durum'], 'canli': True}
+                else:
+                    # Kumandadan TV'ye gönderilen YouTube videosu hâlâ açıksa: telefonda da aynı yerden izlenebilsin
+                    y = getattr(c, 'son_youtube', None)
+                    if y and time.time() - y['zaman'] < 4 * 3600 and ('youtube' in app or (not app and not d.get('kanal'))):
+                        d['youtube'] = {'id': y['id'], 'gecen': int(time.time() - y['zaman'])}
+                    if 'youtube' in app and not yb.ekran_id and not getattr(yb, 'dial_denendi', False):
+                        yb.dial_denendi = True              # YouTube açıkken TV kendiliğinden eşleşmeyi verebilir
+                        threading.Thread(target=yb.dial_ile, daemon=True).start()
                 self.yanit(200, d)
+        elif yol.path == '/youtube':
+            c = CIHAZLAR.get(q.get('c'))
+            if c is None or c.tur == 'adb':
+                self.yanit(200, {'durum': 'yok'})
+            else:
+                o = youtube_bag(c).ozet()
+                o['eslesik'] = bool(youtube_bag(c).ekran_id)
+                self.yanit(200, o)
         elif yol.path == '/ekran_resim':
             c = CIHAZLAR.get(q.get('c'))
             try:
@@ -3292,6 +3548,12 @@ class H(BaseHTTPRequestHandler):
                 if getattr(c, 'durum', '') in ('hata', 'kapali'):
                     c.son_deneme = 0
                 c.baglan_arkada()
+                ok = True
+            elif self.path == '/youtube_bagla':
+                yb = youtube_bag(c)
+                ok, neden = yb.kod_ile(v['kod']) if v.get('kod') else yb.dial_ile()
+            elif self.path == '/youtube_unut':
+                youtube_bag(c).unut()
                 ok = True
             elif self.path == '/eslestir':
                 ok, neden = c.kod_gir(v.get('kod', '')) if toshiba else (False, 'Bu cihaz kodla eşleşmiyor')
