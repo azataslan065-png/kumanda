@@ -402,6 +402,8 @@ def _resim_turu(v):
     if v.lstrip()[:5] in (b'<svg ', b'<?xml'): return 'image/svg+xml'
     return None
 
+YAKALAMA_ISCI = 2
+
 class LGTV:
     tur = 'lg'
 
@@ -767,8 +769,13 @@ class LGTV:
         self.kare_istek = time.time()
         with self.kilit:
             if not self.yakalaniyor:
-                self.yakalaniyor = True
-                threading.Thread(target=self._yakala_dongu, daemon=True).start()
+                # TV her kareyi ayrı bir istekle verir; tek istekte en çok bekleme ağda ve TV'nin dosyayı
+                # yazmasında geçer. İki isteği üst üste gönderince kare hızı neredeyse ikiye katlanır.
+                self.yakalaniyor = YAKALAMA_ISCI
+                self._zamanlar, self._son_bas = [], 0
+                for _ in range(YAKALAMA_ISCI):
+                    threading.Thread(target=self._yakala_dongu, daemon=True).start()
+                    time.sleep(0.05)
         son = time.time() + sure
         while time.time() < son:
             k = self.kare
@@ -780,23 +787,26 @@ class LGTV:
         return None
 
     def _yakala_dongu(self):
-        zamanlar = []
         try:
             while time.time() - self.kare_istek < 4 and self.durum == 'bagli':
                 bas = time.time()
                 veri, tur = self.ekran_resmi()
                 if veri:
-                    zamanlar = (zamanlar + [time.time()])[-10:]
-                    hiz = (len(zamanlar) - 1) / (zamanlar[-1] - zamanlar[0]) if len(zamanlar) > 1 and zamanlar[-1] > zamanlar[0] else 0
-                    self.kare = ((self.kare[0] if self.kare else 0) + 1, veri, tur, round(hiz, 1))
-                    # En fazla 15 kare/sn: göz için akıcı, TV'yi ve telefonu yormaz
-                    time.sleep(max(0, 1 / 15 - (time.time() - bas)))
+                    with self.kilit:
+                        if bas > self._son_bas:          # sonradan çekilmiş kare önce geldiyse eskisini gösterme
+                            self._son_bas = bas
+                            z = self._zamanlar = (self._zamanlar + [time.time()])[-12:]
+                            hiz = (len(z) - 1) / (z[-1] - z[0]) if len(z) > 1 and z[-1] > z[0] else 0
+                            self.kare = ((self.kare[0] if self.kare else 0) + 1, veri, tur, round(hiz, 1))
+                    # En fazla 15 kare/sn: göz için yeterli, TV'yi ve telefonu yormaz
+                    time.sleep(max(0, YAKALAMA_ISCI / 15 - (time.time() - bas)))
                 elif self.yakalama is False:
                     break
                 else:
                     time.sleep(0.3)
         finally:
-            self.yakalaniyor = False
+            with self.kilit:
+                self.yakalaniyor = max(0, int(self.yakalaniyor) - 1)
 
     def girisler(self):
         c = self.istek('ssap://tv/getExternalInputList')

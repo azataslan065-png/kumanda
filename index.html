@@ -417,7 +417,7 @@ function yaz(k,v){try{localStorage.setItem('kmd_'+k,v)}catch(e){}}
   try{ const b=JSON.parse(decodeURIComponent(m[1])); if(b.s&&b.k){ yaz('sunucu',b.s); yaz('anahtar',b.k); yaz('yeni_baglandi','1'); } }catch(e){}
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
-const SAYFA_SURUMU='2026-11-08-D';
+const SAYFA_SURUMU='2026-11-08-E';
 const TV_TURLERI=['lg','androidtv','vidaa','smartcenter'], TOSHIBA=['androidtv','vidaa','smartcenter'];
 const GUNCELLE_KOMUTU='curl -L --remote-name-all https://raw.githubusercontent.com/azataslan065-png/kumanda/main/{kumanda.py,index.html,manifest.webmanifest,sw.js,ikon-192.png,ikon-512.png,ikon-maskable-512.png} && python kumanda.py';
 const YEREL_SAYFA = location.protocol==='http:' && location.port==='8080';
@@ -1073,9 +1073,10 @@ async function meOynat(url){
   if(!v.canPlayType('application/vnd.apple.mpegurl') && await hlsYukle() && window.Hls && Hls.isSupported()){
     if(me.url!==url) return;
     // Mobil veride az harcasın: küçük ekrana uygun en düşük kalite
-    me.hls=new Hls({capLevelToPlayerSize:true, startLevel:0, maxBufferLength:8, backBufferLength:6,
-      // canlı uca olabildiğince yakın oynat; geride kalırsa hafif hızlanıp yetişir
-      lowLatencyMode:true, liveSyncDurationCount:1, liveMaxLatencyDurationCount:3, maxLiveSyncPlaybackRate:1.5});
+    me.hls=new Hls({capLevelToPlayerSize:true, startLevel:-1, maxBufferLength:20, backBufferLength:10,
+      // Canlı uca çok yakın oynatmak (önceki sürüm) yayının sık sık takılmasına yol açıyordu;
+      // biraz tampon bırakılır, geride kalırsa fark edilmeyecek kadar hızlanıp yetişir
+      liveSyncDurationCount:2, liveMaxLatencyDurationCount:6, maxLiveSyncPlaybackRate:1.1});
     let yerelDenendi=false;
     me.hls.on(Hls.Events.ERROR,(e,d)=>{ if(!d.fatal) return; if(d.type===Hls.ErrorTypes.MEDIA_ERROR){ try{me.hls.recoverMediaError();return;}catch(x){} }
       try{me.hls.destroy();}catch(x){} me.hls=null; if(!yerelDenendi){ yerelDenendi=true; yerel(); } });
@@ -1098,7 +1099,7 @@ function meResimBaslat(){
     const blob=await r.blob(); me.kare=+(r.headers.get('X-Kare')||0); me.hiz=+(r.headers.get('X-Hiz')||0);
     const u=URL.createObjectURL(blob); img.onload=()=>{ if(sonUrl) URL.revokeObjectURL(sonUrl); sonUrl=u; }; img.src=u;
     img.classList.remove('gizli'); $('#meBilgi').classList.add('gizli'); $('#meYuk').classList.add('gizli');
-    if(me.hiz) $('#meNot').textContent='TV\'nin o anki ekranı, kesintisiz yenileniyor (≈'+me.hiz.toLocaleString('tr-TR')+' kare/sn).';
+    if(me.hiz) $('#meNot').textContent='TV\'nin o anki ekranı (≈'+me.hiz.toLocaleString('tr-TR')+' kare/sn, TV\'nin verebildiği hız). TV ekranı ses vermez'+(me.bilgi&&me.bilgi.kanal&&yayinBul(me.bilgi.kanal.ad)?'; sesli ve akıcı izlemek için 📡.':'.');
     getir();
   };
   getir();
@@ -1136,7 +1137,7 @@ function meCiz(){
   if(!me.acik){ meVideoDurdur(); meResimDurdur(); $('#meNot').textContent=''; return; }
   if(mod==='yayin'){ meResimDurdur(); if(me.url!==y.url){ meBilgiYaz(baslik,'Yayın açılıyor…',k); meOynat(y.url); }
     $('#meNot').textContent=(d.resim && c && c.tur==='lg' ? 'İnternet yayını, uydudan gelen TV yayınından birkaç saniye geride kalır. Gecikmesiz görüntü için 🖥 TV ekranı. ' : 'İnternet yayını, uydudan gelen TV yayınından birkaç saniye geride kalır (en aza indirildi). ')+'Mobil veride veri harcar.'; }
-  else if(mod==='resim'){ meVideoDurdur(); meResimBaslat(); if(!me.hiz) $('#meNot').textContent='TV\'nin o anki ekranı, kesintisiz yenileniyor.'; }
+  else if(mod==='resim'){ meVideoDurdur(); meResimBaslat(); if(!me.hiz) $('#meNot').textContent='TV\'nin o anki ekranı, kesintisiz yenileniyor.'+(y?' Ses yok; sesli ve akıcı izlemek için 📡.':''); }
   else { meVideoDurdur(); meResimDurdur();
     const alt = simdi ? simdi[2] : k ? 'Bu kanalın internet yayını yok, görüntü gösterilemiyor.' : d.uygulama_adi ? 'TV\'de bu uygulama açık.' : 'TV\'de ne açık olduğu bilinmiyor.';
     meBilgiYaz(k?k.ad:(d.uygulama_adi||'TV açık'), alt, k);
@@ -1149,7 +1150,9 @@ async function meSor(){
   if(!document.hidden){ try{ const r=await getj('/ekran?c='+encodeURIComponent(c.id)); if(me.cihaz===c.id){ me.bilgi=r; meCiz(); } }catch(e){} }
   me.sorZ=setTimeout(meSor, 4000);
 }
-$('#meKaynak').onclick=()=>{ titre(); me.tercih = me.mod==='yayin' ? 'tv' : 'yayin'; yaz('mini_kaynak',me.tercih); me.hataliUrl=''; meCiz(); };
+$('#meKaynak').onclick=()=>{ titre(); me.tercih = me.mod==='yayin' ? 'tv' : 'yayin'; yaz('mini_kaynak',me.tercih); me.hataliUrl='';
+  if(me.tercih==='yayin') me.sesli=true;   // dokunuşla açıldığı için tarayıcı sese izin verir
+  meCiz(); };
 $('#meAc').onclick=()=>{ titre(); me.acik=!me.acik; yaz('mini_acik',me.acik?'1':'0'); meCiz(); };
 $('#meSes').onclick=()=>{ titre(); me.sesli=!me.sesli; const v=$('#meVideo'); v.muted=!me.sesli; if(me.sesli) v.play().catch(()=>{}); $('#meSes').textContent=me.sesli?'🔊':'🔇'; };
 $('#meBuyut').onclick=()=>{ titre(); const a=$('#meAlan'); (a.requestFullscreen||a.webkitRequestFullscreen||(()=>{})).call(a); };
