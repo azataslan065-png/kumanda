@@ -421,6 +421,7 @@ class LGTV:
         self.uygulamalar = []   # TV'de yüklü uygulamalar
         self.klavye = None      # TV'de yazı kutusu seçili mi (None = bilinmiyor)
         self.yazi_izni = None   # TV yazı gönderme iznini verdi mi
+        self.yakalama = None    # TV ekran görüntüsü veriyor mu
 
     def ozet(self):
         # Sayfa durumu düzenli sorduğu için: TV kendi kumandasıyla açılırsa burada yakalanır.
@@ -720,6 +721,42 @@ class LGTV:
         p = (self.istek('ssap://com.webos.applicationManager/getForegroundAppInfo', sure=3) or {}).get('payload') or {}
         return p.get('appId') or ''
 
+
+    # — TV'de şu an ne var (kumandadaki küçük ekran için) —
+    def ekran_bilgisi(self):
+        app = self.on_plan()
+        out = {'uygulama': app, 'uygulama_adi': next((a['ad'] for a in self.uygulamalar if a['id'] == app), ''),
+               'kanal': None, 'resim': self.yakalama is not False}
+        if not app or 'livetv' in app or app.startswith('com.webos.app.tv'):
+            p = (self.istek('ssap://tv/getCurrentChannel', sure=3) or {}).get('payload') or {}
+            if p.get('channelName'):
+                out['kanal'] = {'ad': p['channelName'].strip(), 'no': str(p.get('channelNumber') or ''),
+                                'akis': kanal_akisi(p['channelName'])[:2]}
+        return out
+
+    def ekran_resmi(self):
+        """TV'nin o anki görüntüsü (webOS 'executeOneShot'). Kopya korumalı içerikte TV siyah verir."""
+        c = self.istek('ssap://tv/executeOneShot', {}, sure=6)
+        p = (c or {}).get('payload') or {}
+        url = p.get('imageUri')
+        if not url:
+            if c is not None:
+                self.yakalama = False
+            return None, None
+        self.yakalama = True
+        u = urlparse(url)
+        if u.hostname in ('localhost', '127.0.0.1') and self.adres not in ('localhost', '127.0.0.1'):
+            url = url.replace(u.hostname, self.adres, 1)
+        import urllib.request
+        b = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        b.check_hostname, b.verify_mode = False, ssl.CERT_NONE
+        try:
+            with urllib.request.urlopen(url, timeout=5, context=b) as y:
+                veri = y.read(4 * 1024 * 1024)
+        except Exception:
+            return None, None
+        tur = _resim_turu(veri)
+        return (veri, tur) if tur else (None, None)
 
     def girisler(self):
         c = self.istek('ssap://tv/getExternalInputList')
@@ -1463,6 +1500,8 @@ class _TVTemel:
     def kaydet_sonuc(self, ad, ok, yol, hata=''):
         self.sonuclar[ad] = {'ok': bool(ok), 'yol': yol, 'hata': '' if ok else (hata or 'olmadı')[:300],
                              'zaman': int(time.time())}
+        if ok and (ad in ('KANAL+', 'KANAL-', 'ANA', 'UYGULAMALAR', 'INTERNET') or ad.startswith('UYG:')):
+            self.son_kanal = ''          # TV başka kanala/uygulamaya geçti, hangisi bilinmiyor
         return ok
 
     def kapali_guc(self, ad):
@@ -2391,6 +2430,21 @@ def elle_kanal_duzenle(c, ad, no, sil=False):
     cihaz_kaydet(c)
     return None
 
+def ekran_bilgisi(c):
+    """Kumandadaki küçük ekran: TV'de hangi kanal/uygulama açık."""
+    if isinstance(c, LGTV):
+        return c.ekran_bilgisi()
+    out = {'uygulama': getattr(c, 'on_uygulama', ''), 'uygulama_adi': '', 'kanal': None, 'resim': False}
+    if c.tur in TOSHIBA_TURLERI:
+        l = elle_liste(c)
+        ad = getattr(c, 'simdiki_ad', lambda: '')()
+        if not ad and c.son_kanal:
+            ad = next((k['ad'] for k in l if _elle_id(k['ad']) == c.son_kanal), '')
+        if ad:
+            no = next((k.get('no', '') for k in l if kanal_anahtari(k['ad']) == kanal_anahtari(ad)), '')
+            out['kanal'] = {'ad': ad, 'no': no, 'akis': kanal_akisi(ad)[:2]}
+    return out
+
 # ── ağda TV'nin markasını/modelini bulma (UPnP) ──
 def upnp_bilgileri(ipler, sure=2.5):
     """SSDP ile cihazların açıklama dosyasını bulur: {ip: {'marka','model','ad'}}"""
@@ -2766,7 +2820,7 @@ class H(BaseHTTPRequestHandler):
                 ozetler.append(o)
             liste = AYAR.get('cihazlar') or []
             ilk = lambda t: next((k for k in liste if k.get('tur') == t), {})
-            d = {'surum': 9, 'adb': ADB_VAR, 'cihazlar': ozetler,
+            d = {'surum': 10, 'adb': ADB_VAR, 'cihazlar': ozetler,
                  # eski kumanda sayfası için
                  'ayar': {'projeksiyon': ilk('adb').get('adres', ''), 'tv': ilk('lg').get('adres', ''),
                           'mac': ilk('lg').get('mac') or ''}}
@@ -2820,6 +2874,27 @@ class H(BaseHTTPRequestHandler):
                 self.wfile.write(veri)
             else:
                 self.yanit(404, {})
+        elif yol.path == '/ekran':
+            c = CIHAZLAR.get(q.get('c'))
+            if c is None or c.tur == 'adb' or c.durum != 'bagli':
+                self.yanit(200, {'bagli': False})
+            else:
+                d = ekran_bilgisi(c)
+                d['bagli'] = True
+                self.yanit(200, d)
+        elif yol.path == '/ekran_resim':
+            c = CIHAZLAR.get(q.get('c'))
+            veri, tur = c.ekran_resmi() if isinstance(c, LGTV) and c.durum == 'bagli' else (None, None)
+            if veri:
+                self.send_response(200)
+                self.cors()
+                self.send_header('Content-Type', tur)
+                self.send_header('Cache-Control', 'no-store')
+                self.send_header('Content-Length', str(len(veri)))
+                self.end_headers()
+                self.wfile.write(veri)
+            else:
+                self.yanit(404, {'yakalama': getattr(c, 'yakalama', None)})
         elif yol.path == '/simdiki':
             c = CIHAZLAR.get(q.get('c'))
             s = ''

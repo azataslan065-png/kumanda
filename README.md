@@ -28,6 +28,14 @@ Sonra tarayıcıda `http://127.0.0.1:8080` → ⚙ → "Ağda ara" → bulunan c
 
 Termux arka planda kapanmasın: Termux bildiriminde **Acquire wakelock**, Android ayarlarında Termux için pil **Kısıtlanmamış**.
 
+## Küçük ekran
+Kumandanın üstünde TV'de o an ne açıksa görünür:
+- TV bir yayın kanalındaysa ve kanalın resmi internet yayını Canlı TV listesinde varsa, o yayın oynatılır
+  (sessiz başlar, TV'den birkaç saniye geride olabilir, mobil veride veri harcar; en düşük kalite seçilir).
+- LG TV'de başka kanal ya da uygulama açıksa TV'nin ekran görüntüsü 2 sn'de bir yenilenir (webOS `executeOneShot`;
+  Netflix gibi korumalı içerikte TV siyah verir, bazı TV'ler hiç vermez).
+- İkisi de yoksa açık kanalın adı ve yayın akışı gösterilir. ▾ ile küçültülür.
+
 ## Uygulama olarak yükleme
 Kumanda yüklenebilir bir web uygulamasıdır (PWA). Chrome'da kumandayı aç → ⋮ → **Uygulamayı yükle**
 (ya da kumandada ⚙ → **Yükle**). Ana ekrana ve uygulama listesine simgesiyle eklenir, tam ekran açılır.
