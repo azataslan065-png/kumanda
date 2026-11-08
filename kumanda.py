@@ -2931,6 +2931,11 @@ class H(BaseHTTPRequestHandler):
             else:
                 d = ekran_bilgisi(c)
                 d['bagli'] = True
+                # Kumandadan TV'ye gönderilen YouTube videosu hâlâ açıksa: telefonda da aynı yerden izlenebilsin
+                y = getattr(c, 'son_youtube', None)
+                app = (d.get('uygulama') or '').lower()
+                if y and time.time() - y['zaman'] < 4 * 3600 and ('youtube' in app or (not app and not d.get('kanal'))):
+                    d['youtube'] = {'id': y['id'], 'gecen': int(time.time() - y['zaman'])}
                 self.yanit(200, d)
         elif yol.path == '/ekran_resim':
             c = CIHAZLAR.get(q.get('c'))
@@ -3016,13 +3021,17 @@ class H(BaseHTTPRequestHandler):
                 ok, neden = c.kod_gir(v.get('kod', '')) if toshiba else (False, 'Bu cihaz kodla eşleşmiyor')
             elif self.path == '/uygulama':
                 ok = c.uygulama(v.get('id', ''))
+                c.son_youtube = None
             elif self.path == '/ac':
                 url = v.get('url') or CANLI_TV_URL
                 ok = c.adres_ac(url) if url.startswith(('http://', 'https://')) else False
+                vid = youtube_kimligi(url) if ok else None
+                c.son_youtube = {'id': vid, 'zaman': time.time()} if vid else None
             elif self.path == '/giris' and hasattr(c, 'giris_sec'):
                 ok = c.giris_sec(v.get('id', ''))
             elif self.path == '/kanal' and isinstance(c, LGTV):
                 ok = c.kanal_ac(v.get('id', ''))
+                c.son_youtube = None
             elif self.path == '/kanal' and toshiba:
                 ok = elle_kanal_ac(c, v.get('id', ''))
                 if not ok:

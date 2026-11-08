@@ -244,8 +244,8 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
   <p style="margin:8px 0 0">TV'de kod görünmüyor ya da süresi geçtiyse <a href="#" id="yeniKod" style="color:#8fb4ff">yeni kod iste</a>.</p></div>
 
 <div class="mini-ekran gizli" id="miniEkran">
-  <div class="me-bas"><span class="me-y" id="meBaslik">TV ekranı</span><button id="meKaynak" aria-label="Görüntü kaynağı" class="gizli">📡</button><button id="meSes" aria-label="Ses" class="gizli">🔇</button><button id="meBuyut" aria-label="Tam ekran">⛶</button><button id="meAc" aria-label="Küçült">▾</button></div>
-  <div class="me-alan" id="meAlan"><video id="meVideo" playsinline muted class="gizli"></video><img id="meResim" alt="" class="gizli"><div class="me-bilgi" id="meBilgi"></div><div class="me-yukleniyor gizli" id="meYuk"></div></div>
+  <div class="me-bas"><span class="me-y" id="meBaslik">TV ekranı</span><button id="meTel" aria-label="Telefonda da izle" class="gizli">📱</button><button id="meKaynak" aria-label="Görüntü kaynağı" class="gizli">📡</button><button id="meSes" aria-label="Ses" class="gizli">🔇</button><button id="meBuyut" aria-label="Tam ekran">⛶</button><button id="meAc" aria-label="Küçült">▾</button></div>
+  <div class="me-alan" id="meAlan"><video id="meVideo" playsinline muted class="gizli"></video><img id="meResim" alt="" class="gizli"><div class="me-bilgi" id="meBilgi"></div><div id="meYt" class="gizli" style="position:absolute;inset:0"></div><div class="me-yukleniyor gizli" id="meYuk"></div></div>
   <small class="me-not" id="meNot"></small><a class="me-not gizli" id="meUyg" target="_blank" rel="noopener" style="color:#8fb4ff;padding-top:0"></a>
 </div>
 <div id="anaPanel">
@@ -417,7 +417,7 @@ function yaz(k,v){try{localStorage.setItem('kmd_'+k,v)}catch(e){}}
   try{ const b=JSON.parse(decodeURIComponent(m[1])); if(b.s&&b.k){ yaz('sunucu',b.s); yaz('anahtar',b.k); yaz('yeni_baglandi','1'); } }catch(e){}
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
-const SAYFA_SURUMU='2026-11-08-E';
+const SAYFA_SURUMU='2026-11-08-F';
 const TV_TURLERI=['lg','androidtv','vidaa','smartcenter'], TOSHIBA=['androidtv','vidaa','smartcenter'];
 const GUNCELLE_KOMUTU='curl -L --remote-name-all https://raw.githubusercontent.com/azataslan065-png/kumanda/main/{kumanda.py,index.html,manifest.webmanifest,sw.js,ikon-192.png,ikon-512.png,ikon-maskable-512.png} && python kumanda.py';
 const YEREL_SAYFA = location.protocol==='http:' && location.port==='8080';
@@ -1096,7 +1096,7 @@ function meResimBaslat(){
     if(!r || !r.ok){ let j={}; try{ j=r?await r.json():{}; }catch(e){}
       if(j.yakalama===false || !r){ me.resimYok=!!r; me.resimZ=null; $('#meYuk').classList.add('gizli'); if(r) meCiz(); else setTimeout(()=>{ me.resimZ=null; meResimBaslat(); },2000); return; }
       setTimeout(getir,300); return; }
-    const blob=await r.blob(); me.kare=+(r.headers.get('X-Kare')||0); me.hiz=+(r.headers.get('X-Hiz')||0);
+    const blob=await r.blob(); if(me.nesil!==nesil||me.mod!=='resim'){ if(me.nesil===nesil) me.resimZ=null; return; } me.kare=+(r.headers.get('X-Kare')||0); me.hiz=+(r.headers.get('X-Hiz')||0);
     const u=URL.createObjectURL(blob); img.onload=()=>{ if(sonUrl) URL.revokeObjectURL(sonUrl); sonUrl=u; }; img.src=u;
     img.classList.remove('gizli'); $('#meBilgi').classList.add('gizli'); $('#meYuk').classList.add('gizli');
     if(me.hiz) $('#meNot').textContent='TV\'nin o anki ekranı (≈'+me.hiz.toLocaleString('tr-TR')+' kare/sn, TV\'nin verebildiği hız). TV ekranı ses vermez'+(me.bilgi&&me.bilgi.kanal&&yayinBul(me.bilgi.kanal.ad)?'; sesli ve akıcı izlemek için 📡.':'.');
@@ -1122,6 +1122,11 @@ function meCiz(){
   const konum = y ? 'yayin:'+y.url : '';
   const ekranVar = d.resim && !me.resimYok && c && c.tur==='lg', yayinVar = y && me.hataliUrl!==konum;
   let mod = (ekranVar && (me.tercih!=='yayin' || !yayinVar)) ? 'resim' : yayinVar ? 'yayin' : 'bilgi';
+  const yt=d.youtube; if(!yt) me.ytAcik=false;
+  if(yt && me.ytAcik) mod='yt';
+  $('#meTel').classList.toggle('gizli',!yt); $('#meTel').textContent = mod==='yt' ? '🖥' : '📱';
+  $('#meTel').setAttribute('aria-label', mod==='yt' ? 'TV ekranına dön' : 'Telefonda da izle (sesli)');
+  if(mod!=='yt') meYtKapat();
   // 📡 her zaman görünür kalır (yayın bir kez açılamadıysa da yeniden denenebilir)
   $('#meKaynak').classList.toggle('gizli', !(ekranVar && y)); $('#meKaynak').textContent = mod==='yayin' ? '🖥' : '📡';
   $('#meKaynak').setAttribute('aria-label', mod==='yayin' ? 'TV ekranını göster' : 'İnternet yayınını göster (sesli)');
@@ -1135,7 +1140,9 @@ function meCiz(){
   if(simdi){ const s=document.createElement('small'); s.textContent=simdi[2]; $('#meBaslik').appendChild(s); }
   $('#meBuyut').classList.toggle('gizli', mod==='bilgi');
   if(!me.acik){ meVideoDurdur(); meResimDurdur(); $('#meNot').textContent=''; return; }
-  if(mod==='yayin'){ meResimDurdur(); if(me.url!==y.url){ meBilgiYaz(baslik,'Yayın açılıyor…',k); meOynat(y.url); }
+  if(mod==='yt'){ meVideoDurdur(); meResimDurdur(); meYtAc(yt); $('#meBilgi').classList.add('gizli');
+    $('#meNot').textContent='TV\'ye gönderdiğin video telefonda da oynuyor, TV\'de kaldığı yerden başladı. TV\'de durdurduysan ya da ileri sardıysan burada da kaydır.'; }
+  else if(mod==='yayin'){ meResimDurdur(); if(me.url!==y.url){ meBilgiYaz(baslik,'Yayın açılıyor…',k); meOynat(y.url); }
     $('#meNot').textContent=(d.resim && c && c.tur==='lg' ? 'İnternet yayını, uydudan gelen TV yayınından birkaç saniye geride kalır. Gecikmesiz görüntü için 🖥 TV ekranı. ' : 'İnternet yayını, uydudan gelen TV yayınından birkaç saniye geride kalır (en aza indirildi). ')+'Mobil veride veri harcar.'; }
   else if(mod==='resim'){ meVideoDurdur(); meResimBaslat(); if(!me.hiz) $('#meNot').textContent='TV\'nin o anki ekranı, kesintisiz yenileniyor.'+(y?' Ses yok; sesli ve akıcı izlemek için 📡.':''); }
   else { meVideoDurdur(); meResimDurdur();
@@ -1147,9 +1154,21 @@ async function meSor(){
   clearTimeout(me.sorZ); const c=aktif();
   if(!c || c.tur==='adb' || !TV_TURLERI.includes(c.tur) || c.durum!=='bagli' || (kopruSurum && kopruSurum<11)){ me.bilgi=null; meCiz(); me.sorZ=setTimeout(meSor,4000); return; }
   if(me.cihaz!==c.id){ me.cihaz=c.id; me.kare=0; me.hiz=0; me.resimYok=false; me.hataliUrl=''; meVideoDurdur(); meResimDurdur(); }
-  if(!document.hidden){ try{ const r=await getj('/ekran?c='+encodeURIComponent(c.id)); if(me.cihaz===c.id){ me.bilgi=r; meCiz(); } }catch(e){} }
+  if(!document.hidden){ try{ const r=await getj('/ekran?c='+encodeURIComponent(c.id)); if(me.cihaz===c.id){ me.bilgi=r; me.bilgiZaman=Date.now(); meCiz(); } }catch(e){} }
   me.sorZ=setTimeout(meSor, 4000);
 }
+// ── kumandadan gönderilen YouTube videosu: telefonda da aynı yerden ──
+function meYtAc(yt){
+  const k=$('#meYt'); k.classList.remove('gizli');
+  if(k.dataset.id===yt.id) return; k.dataset.id=yt.id; k.innerHTML='';
+  const bas=Math.max(0, Math.round(yt.gecen + (Date.now()-me.bilgiZaman)/1000));
+  const f=document.createElement('iframe'); f.allow='autoplay; encrypted-media; fullscreen; picture-in-picture'; f.allowFullscreen=true;
+  f.style.cssText='width:100%;height:100%;border:0;background:#000';
+  f.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(yt.id)+'?autoplay=1&playsinline=1&start='+bas+'&rel=0';
+  k.appendChild(f);
+}
+function meYtKapat(){ const k=$('#meYt'); if(k.dataset.id){ k.innerHTML=''; delete k.dataset.id; } k.classList.add('gizli'); }
+$('#meTel').onclick=()=>{ titre(); me.ytAcik=!me.ytAcik; meCiz(); };
 $('#meKaynak').onclick=()=>{ titre(); me.tercih = me.mod==='yayin' ? 'tv' : 'yayin'; yaz('mini_kaynak',me.tercih); me.hataliUrl='';
   if(me.tercih==='yayin') me.sesli=true;   // dokunuşla açıldığı için tarayıcı sese izin verir
   meCiz(); };
