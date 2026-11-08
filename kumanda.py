@@ -422,6 +422,9 @@ class LGTV:
         self.klavye = None      # TV'de yazı kutusu seçili mi (None = bilinmiyor)
         self.yazi_izni = None   # TV yazı gönderme iznini verdi mi
         self.yakalama = None    # TV ekran görüntüsü veriyor mu
+        self.yakalaniyor = False
+        self.kare = None        # (sıra, veri, tür, kare/sn)
+        self.kare_istek = 0
 
     def ozet(self):
         # Sayfa durumu düzenli sorduğu için: TV kendi kumandasıyla açılırsa burada yakalanır.
@@ -757,6 +760,43 @@ class LGTV:
             return None, None
         tur = _resim_turu(veri)
         return (veri, tur) if tur else (None, None)
+
+    def kare_al(self, onceki=0, sure=3):
+        """Sürekli yakalama: sayfa istedikçe arkadaki döngü TV'den verebildiği hızda kare alır;
+        bu çağrı bir öncekinden yeni kare gelene kadar bekler (sayfa boşuna sormasın)."""
+        self.kare_istek = time.time()
+        with self.kilit:
+            if not self.yakalaniyor:
+                self.yakalaniyor = True
+                threading.Thread(target=self._yakala_dongu, daemon=True).start()
+        son = time.time() + sure
+        while time.time() < son:
+            k = self.kare
+            if k and k[0] > onceki:
+                return k
+            if self.yakalama is False:
+                return None
+            time.sleep(0.02)
+        return None
+
+    def _yakala_dongu(self):
+        zamanlar = []
+        try:
+            while time.time() - self.kare_istek < 4 and self.durum == 'bagli':
+                bas = time.time()
+                veri, tur = self.ekran_resmi()
+                if veri:
+                    zamanlar = (zamanlar + [time.time()])[-10:]
+                    hiz = (len(zamanlar) - 1) / (zamanlar[-1] - zamanlar[0]) if len(zamanlar) > 1 and zamanlar[-1] > zamanlar[0] else 0
+                    self.kare = ((self.kare[0] if self.kare else 0) + 1, veri, tur, round(hiz, 1))
+                    # En fazla 15 kare/sn: göz için akıcı, TV'yi ve telefonu yormaz
+                    time.sleep(max(0, 1 / 15 - (time.time() - bas)))
+                elif self.yakalama is False:
+                    break
+                else:
+                    time.sleep(0.3)
+        finally:
+            self.yakalaniyor = False
 
     def girisler(self):
         c = self.istek('ssap://tv/getExternalInputList')
@@ -2820,7 +2860,7 @@ class H(BaseHTTPRequestHandler):
                 ozetler.append(o)
             liste = AYAR.get('cihazlar') or []
             ilk = lambda t: next((k for k in liste if k.get('tur') == t), {})
-            d = {'surum': 10, 'adb': ADB_VAR, 'cihazlar': ozetler,
+            d = {'surum': 11, 'adb': ADB_VAR, 'cihazlar': ozetler,
                  # eski kumanda sayfası için
                  'ayar': {'projeksiyon': ilk('adb').get('adres', ''), 'tv': ilk('lg').get('adres', ''),
                           'mac': ilk('lg').get('mac') or ''}}
@@ -2884,10 +2924,18 @@ class H(BaseHTTPRequestHandler):
                 self.yanit(200, d)
         elif yol.path == '/ekran_resim':
             c = CIHAZLAR.get(q.get('c'))
-            veri, tur = c.ekran_resmi() if isinstance(c, LGTV) and c.durum == 'bagli' else (None, None)
+            try:
+                onceki = int(q.get('onceki') or 0)
+            except ValueError:
+                onceki = 0
+            k = c.kare_al(onceki) if isinstance(c, LGTV) and c.durum == 'bagli' else None
+            veri, tur = (k[1], k[2]) if k else (None, None)
             if veri:
                 self.send_response(200)
                 self.cors()
+                self.send_header('Access-Control-Expose-Headers', 'X-Kare, X-Hiz')
+                self.send_header('X-Kare', str(k[0]))
+                self.send_header('X-Hiz', str(k[3]))
                 self.send_header('Content-Type', tur)
                 self.send_header('Cache-Control', 'no-store')
                 self.send_header('Content-Length', str(len(veri)))

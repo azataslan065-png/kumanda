@@ -32,7 +32,7 @@ Termux arka planda kapanmasın: Termux bildiriminde **Acquire wakelock**, Androi
 Kumandanın üstünde TV'de o an ne açıksa görünür:
 - TV bir yayın kanalındaysa ve kanalın resmi internet yayını Canlı TV listesinde varsa, o yayın oynatılır
   (sessiz başlar, TV'den birkaç saniye geride olabilir, mobil veride veri harcar; en düşük kalite seçilir).
-- LG TV'de başka kanal ya da uygulama açıksa TV'nin ekran görüntüsü 2 sn'de bir yenilenir (webOS `executeOneShot`;
+- LG TV ekran görüntüsü veriyorsa TV'nin o anki ekranı kesintisiz (en fazla 15 kare/sn) gösterilir; 📡 ile kanalın internet yayınına geçilir (webOS `executeOneShot`;
   Netflix gibi korumalı içerikte TV siyah verir, bazı TV'ler hiç vermez).
 - İkisi de yoksa açık kanalın adı ve yayın akışı gösterilir. ▾ ile küçültülür.
 
