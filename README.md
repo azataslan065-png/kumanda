@@ -36,6 +36,15 @@ Kumandanın üstünde TV'de o an ne açıksa görünür:
   Netflix gibi korumalı içerikte TV siyah verir, bazı TV'ler hiç vermez).
 - İkisi de yoksa açık kanalın adı ve yayın akışı gösterilir. ▾ ile küçültülür.
 
+## Rehber, hatırlatma, izleme süresi
+- **Rehber** (kanal listesinin altında): *Şimdi* — tüm kanallarda şu an ne var; *Maçlar* — yayın akışlarından bulunan
+  karşılaşmalar (tekrarlar hariç); *Ara* — program/takım/kanal adıyla önümüzdeki günlerde arama; *Hatırlatmalar*.
+- **🔔 Hatırlatma**: program başlamadan 5 dk önce kumanda açıksa kumandada, TV açıksa TV ekranında uyarı.
+  Telefona bildirim için F-Droid'den Termux:API uygulaması + Termux'ta `pkg install termux-api`.
+- **🎤 Sesle komut**: "TRT 1'i aç", "sesi 5 aç", "kanal 7", "YouTube'u aç", "Galatasaray maçı ne zaman", "sessiz"…
+- **⚙ → İzleme süresi**: TV açıkken köprü her 30 sn'de hangi kanal/uygulamanın açık olduğunu kaydeder (son 7 gün).
+- **⚙ → Görünüm**: Koyu / Açık / Otomatik.
+
 ## Uygulama olarak yükleme
 Kumanda yüklenebilir bir web uygulamasıdır (PWA). Chrome'da kumandayı aç → ⋮ → **Uygulamayı yükle**
 (ya da kumandada ⚙ → **Yükle**). Ana ekrana ve uygulama listesine simgesiyle eklenir, tam ekran açılır.

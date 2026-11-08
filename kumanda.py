@@ -1083,7 +1083,7 @@ def akis_guncelle():
             return
         AKIS['yukleniyor'] = True
     try:
-        birlesik, hatalar = {}, []
+        birlesik, hatalar, adlar = {}, [], {}
         for tur, url in AKIS_KAYNAKLARI:
             try:
                 veri = _indir(url)
@@ -1093,6 +1093,7 @@ def akis_guncelle():
                 continue
             for ad, liste in parca.items():
                 anahtar = _akis_anahtarlari(ad)[0]
+                adlar.setdefault(anahtar, ad)
                 mevcut = birlesik.setdefault(anahtar, [])
                 # Önceki (öncelikli) kaynakta o saat dilimi zaten varsa ekleme
                 for p in liste:
@@ -1103,10 +1104,10 @@ def akis_guncelle():
             return
         for liste in birlesik.values():
             liste.sort()
-        AKIS.update(veri=birlesik, zaman=time.time(), hata='; '.join(hatalar))
+        AKIS.update(veri=birlesik, adlar=adlar, zaman=time.time(), hata='; '.join(hatalar))
         try:
             with open(AKIS_DOSYASI + '.tmp', 'w', encoding='utf-8') as f:
-                json.dump({'zaman': AKIS['zaman'], 'veri': birlesik}, f, ensure_ascii=False, separators=(',', ':'))
+                json.dump({'zaman': AKIS['zaman'], 'veri': birlesik, 'adlar': adlar}, f, ensure_ascii=False, separators=(',', ':'))
             os.replace(AKIS_DOSYASI + '.tmp', AKIS_DOSYASI)
         except Exception:
             pass
@@ -1121,6 +1122,7 @@ def akis_hazirla():
                 k = json.load(f)
             AKIS['veri'] = {a: [tuple(p) for p in l] for a, l in k.get('veri', {}).items()}
             AKIS['zaman'] = k.get('zaman', 0)
+            AKIS['adlar'] = k.get('adlar') or {}
         except Exception:
             pass
     if time.time() - AKIS['zaman'] > AKIS_YENILEME and not AKIS['yukleniyor']:
@@ -1134,6 +1136,256 @@ def kanal_akisi(ad, simdi=None, ileri=24 * 3600):
         if liste:
             return [list(p) for p in liste if p[1] > simdi and p[0] < simdi + ileri][:80]
     return []
+
+# ───────────────────────── rehber: şimdi ne var, arama, maçlar, hatırlatmalar, izleme süresi ─────────────────────────
+def _sade(s):
+    return re.sub(r'\s+', ' ', str(s or '').translate(_TR_AKIS).lower()).strip()
+
+def akis_adi(anahtar):
+    return AKIS.get('adlar', {}).get(anahtar) or anahtar
+
+def simdi_yayinda(simdi=None):
+    """Her kanalda şu an ve sıradaki program."""
+    akis_hazirla()
+    simdi = simdi or time.time()
+    out = []
+    for anahtar, liste in AKIS['veri'].items():
+        su = next((p for p in liste if p[0] <= simdi < p[1]), None)
+        sonra = next((p for p in liste if p[0] >= simdi), None)
+        if su or sonra:
+            out.append({'kanal': akis_adi(anahtar), 'anahtar': anahtar,
+                        'simdi': list(su[:3]) if su else None, 'sonra': list(sonra[:3]) if sonra else None})
+    return out
+
+def akis_ara(q, simdi=None, sinir=150):
+    """Önümüzdeki günlerin yayın akışında program adı ya da kanal adıyla arama."""
+    akis_hazirla()
+    simdi = simdi or time.time()
+    kelimeler = [k for k in _sade(q).split(' ') if k]
+    if not kelimeler:
+        return []
+    out = []
+    for anahtar, liste in AKIS['veri'].items():
+        kanal = akis_adi(anahtar)
+        sk = _sade(kanal)
+        for p in liste:
+            if p[1] <= simdi:
+                continue
+            metin = _sade(p[2]) + ' ' + sk
+            if all(k in metin for k in kelimeler):
+                out.append({'kanal': kanal, 'anahtar': anahtar, 'bas': p[0], 'bit': p[1], 'baslik': p[2]})
+    out.sort(key=lambda x: (x['bas'], x['kanal']))
+    return out[:sinir]
+
+_MAC_DISLA = re.compile(r'ozet|goller|arsiv|bolum|mac onu|mac sonu|basliyor|rapor|preview|haber|magazin|netbusters|'
+                        r'show|moments|garaj|trio|taraftar|muhabir|gamer|squad|yildiz 10 gol|national pride|chasing')
+_SPOR_KANALI = re.compile(r'spor|sport|exxen')
+_TAKIM = re.compile(r'spor\b|\b(fk|sk|basket|galatasaray|fenerbahce|besiktas|trabzonspor|belediyespor|united|city|'
+                    r'real madrid|barcelona|bayern|juventus|milan|inter|arsenal|chelsea|liverpool)\b')
+
+def mac_mi(baslik, kanal):
+    """Program bir maç (canlı karşılaşma) mı? Yayın akışlarında tür bilgisi yok; başlıktan anlaşılır."""
+    b, k = _sade(baslik), _sade(kanal)
+    if _MAC_DISLA.search(b) or re.search(r'\bbant\b', b):
+        return None
+    if 'formula 1' in b and re.search(r'yaris|siralama|sprint', b):
+        return {'lig': 'Formula 1', 'ad': re.sub(r'\s*/\s*canli\s*$', '', baslik, flags=re.I).strip()}
+    gov = re.sub(r'\s*[-/]\s*canli\s*-?\s*$', '', baslik, flags=re.I).strip()
+    lig = ''
+    m = re.match(r'^(.*?(?:hafta|week))\s+(.+)$', gov, flags=re.I)
+    if m:
+        lig, gov = re.sub(r'\s*\(\d\d-\d\d\)', '', m.group(1)).strip(), m.group(2).strip()
+    t = re.split(r'\s+-\s+|\s*-\s*(?=[A-ZÇĞİÖŞÜ])', gov)
+    if len(t) < 2 or not all(re.search(r'[A-Za-zÇĞİÖŞÜçğıöşü]{2}', x) for x in t[:2]) or len(t[0]) > 40 or len(t[1]) > 40:
+        return None
+    if not (_SPOR_KANALI.search(k) or _TAKIM.search(b) or lig):
+        return None
+    takimlar = [t[0].strip(), t[1].strip()]
+    if all(x.isupper() for x in takimlar):
+        takimlar = [' '.join(w.upper() if w in ('fk', 'sk', 'ac', 'fc') else w.capitalize() for w in x.lower().split(' ')) for x in takimlar]
+    anahtar = '-'.join(re.sub(r'[^a-z]', '', re.sub(r'\b(fk|sk|fc|ac|as|bsb|bld|b)\b', '', _sade(x)))[:6] for x in takimlar)
+    return {'lig': lig.title() if lig.isupper() else lig, 'ad': ' - '.join(takimlar), 'anahtar': anahtar}
+
+def maclar(simdi=None, gun=7):
+    akis_hazirla()
+    simdi = simdi or time.time()
+    gruplar = {}
+    for anahtar, liste in AKIS['veri'].items():
+        kanal = akis_adi(anahtar)
+        for p in liste:
+            if p[1] <= simdi or p[0] > simdi + gun * 86400:
+                continue
+            m = mac_mi(p[2], kanal)
+            if not m:
+                continue
+            g = gruplar.setdefault((m.get('anahtar') or _sade(m['ad']), p[0] // 600), {'ad': m['ad'], 'lig': m['lig'], 'bas': p[0], 'bit': p[1],
+                                                                     'kanallar': [], 'baslik': p[2]})
+            if kanal not in g['kanallar']:
+                g['kanallar'].append(kanal)
+    return sorted(gruplar.values(), key=lambda g: g['bas'])
+
+# — hatırlatmalar: program başlamadan 5 dk önce TV'de bildirim, telefonda bildirim (Termux:API varsa), kumanda sayfasında uyarı —
+HATIRLATMA_ONCE = 5 * 60
+BILDIRIMLER = []          # kumanda sayfasının göstereceği son bildirimler
+hatirlatma_kilit = threading.Lock()
+
+def hatirlatmalar():
+    l = AYAR.get('hatirlatmalar')
+    return l if isinstance(l, list) else []
+
+def hatirlatma_ekle(kanal, baslik, bas, bit):
+    try:
+        bas, bit = int(float(bas)), int(float(bit or 0))
+    except (TypeError, ValueError):
+        return None, 'Saat geçersiz'
+    if bit and bit < time.time():
+        return None, 'Bu program bitmiş'
+    kanal, baslik = str(kanal or '')[:60], str(baslik or '')[:160]
+    with hatirlatma_kilit:
+        l = [h for h in hatirlatmalar() if h.get('bit', h['bas']) > time.time() - 3600]
+        hid = hashlib.md5(('%s|%s|%d' % (kanal, baslik, bas)).encode()).hexdigest()[:10]
+        if not any(h['id'] == hid for h in l):
+            l.append({'id': hid, 'kanal': kanal, 'baslik': baslik, 'bas': bas, 'bit': bit, 'yapildi': False})
+        l.sort(key=lambda h: h['bas'])
+        AYAR['hatirlatmalar'] = l
+        ayar_yaz(AYAR)
+    return hid, None
+
+def hatirlatma_sil(hid):
+    with hatirlatma_kilit:
+        AYAR['hatirlatmalar'] = [h for h in hatirlatmalar() if h.get('id') != hid]
+        ayar_yaz(AYAR)
+
+TERMUX_BILDIRIM = None
+
+def _telefon_bildirimi(baslik, metin, hid):
+    global TERMUX_BILDIRIM
+    if TERMUX_BILDIRIM is None:
+        import shutil
+        TERMUX_BILDIRIM = bool(shutil.which('termux-notification'))
+    if not TERMUX_BILDIRIM:
+        return False
+    try:
+        subprocess.run(['termux-notification', '--id', 'kumanda-' + hid, '--title', baslik, '--content', metin,
+                        '--priority', 'high', '--sound', '--vibrate', '300,150,300',
+                        '--action', 'am start -a android.intent.action.VIEW -d http://127.0.0.1:%d/' % PORT],
+                       timeout=10, capture_output=True)
+        return True
+    except Exception:
+        return False
+
+def _tv_bildirimi(metin):
+    for c in list(CIHAZLAR.values()):
+        if isinstance(c, LGTV) and c.durum == 'bagli':
+            try:
+                c.istek('ssap://system.notifications/createToast', {'message': metin[:60]}, sure=4)
+            except Exception:
+                pass
+
+def hatirlatma_dongusu():
+    while True:
+        time.sleep(20)
+        try:
+            simdi = time.time()
+            degisti = False
+            for h in hatirlatmalar():
+                if h.get('yapildi') or h['bas'] - HATIRLATMA_ONCE > simdi:
+                    continue
+                if (h.get('bit') or h['bas'] + 3600) < simdi:
+                    h['yapildi'] = True
+                    degisti = True
+                    continue
+                kalan = int(round((h['bas'] - simdi) / 60))
+                ne_zaman = ('%d dakika sonra' % kalan) if kalan > 0 else 'başladı'
+                metin = '%s %s · %s' % (h['baslik'], ne_zaman, h['kanal'])
+                _tv_bildirimi('🔔 ' + metin)
+                tel = _telefon_bildirimi('🔔 ' + h['baslik'], '%s, %s' % (ne_zaman.capitalize(), h['kanal']), h['id'])
+                BILDIRIMLER.append({'id': h['id'], 'zaman': int(simdi), 'baslik': h['baslik'], 'kanal': h['kanal'],
+                                    'bas': h['bas'], 'metin': metin, 'telefon': tel})
+                del BILDIRIMLER[:-20]
+                h['yapildi'] = True
+                degisti = True
+            if degisti:
+                with hatirlatma_kilit:
+                    AYAR['hatirlatmalar'] = [h for h in hatirlatmalar() if (h.get('bit') or h['bas'] + 3600) > simdi - 6 * 3600]
+                    ayar_yaz(AYAR)
+        except Exception:
+            pass
+
+# — izleme süresi: TV açıkken her 30 sn hangi kanal/uygulamada olduğu kaydedilir —
+IZLEME_DOSYASI = os.path.expanduser('~/.kumanda_izleme.json')
+IZLEME_ARALIK = 30
+izleme_kilit = threading.Lock()
+
+def izleme_oku():
+    try:
+        with open(IZLEME_DOSYASI, encoding='utf-8') as f:
+            d = json.load(f)
+            return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+def izleme_dongusu():
+    while True:
+        time.sleep(IZLEME_ARALIK)
+        try:
+            gun = time.strftime('%Y-%m-%d')
+            eklenen = []
+            for c in list(CIHAZLAR.values()):
+                if c.tur == 'adb' or c.durum != 'bagli':
+                    continue
+                if c.tur == 'androidtv' and c.bilgi.get('ekran') == 'bekleme':
+                    continue
+                try:
+                    b = ekran_bilgisi(c)
+                except Exception:
+                    b = {}
+                k = b.get('kanal')
+                ne = (k['ad'] if k else '') or b.get('uygulama_adi') or b.get('uygulama') or 'Diğer'
+                ne = re.sub(r'\s+(HD|FHD|UHD|SD)$', '', str(ne).strip(), flags=re.I)[:40]
+                eklenen.append((c.id, c.ad, ne))
+            if not eklenen:
+                continue
+            with izleme_kilit:
+                d = izleme_oku()
+                g = d.setdefault(gun, {})
+                for cid, ad, ne in eklenen:
+                    x = g.setdefault(cid, {'ad': ad, 'toplam': 0, 'ne': {}})
+                    x['ad'] = ad
+                    x['toplam'] += IZLEME_ARALIK
+                    x['ne'][ne] = x['ne'].get(ne, 0) + IZLEME_ARALIK
+                for eski in sorted(d)[:-35]:
+                    del d[eski]
+                with open(IZLEME_DOSYASI + '.tmp', 'w', encoding='utf-8') as f:
+                    json.dump(d, f, ensure_ascii=False, separators=(',', ':'))
+                os.replace(IZLEME_DOSYASI + '.tmp', IZLEME_DOSYASI)
+        except Exception:
+            pass
+
+def izleme_ozeti(gun_sayisi=7):
+    with izleme_kilit:
+        d = izleme_oku()
+    bugun = time.strftime('%Y-%m-%d')
+    gunler = []
+    for i in range(gun_sayisi - 1, -1, -1):
+        t = time.strftime('%Y-%m-%d', time.localtime(time.time() - i * 86400))
+        g = d.get(t, {})
+        gunler.append({'tarih': t, 'toplam': sum(x.get('toplam', 0) for x in g.values()),
+                       'cihazlar': {cid: {'ad': x.get('ad', cid), 'toplam': x.get('toplam', 0)} for cid, x in g.items()}})
+    def en_cok(g):
+        ne = {}
+        for x in g.values():
+            for a, s in x.get('ne', {}).items():
+                ne[a] = ne.get(a, 0) + s
+        return sorted(([a, s] for a, s in ne.items()), key=lambda x: -x[1])[:8]
+    hafta = {}
+    for t in [g['tarih'] for g in gunler]:
+        for cid, x in d.get(t, {}).items():
+            hafta.setdefault(cid, {'ne': {}})
+            for a, s in x.get('ne', {}).items():
+                hafta[cid]['ne'][a] = hafta[cid]['ne'].get(a, 0) + s
+    return {'bugun': bugun, 'gunler': gunler, 'bugun_en_cok': en_cok(d.get(bugun, {})), 'hafta_en_cok': en_cok(hafta),
+            'aralik': IZLEME_ARALIK}
 
 # ───────────────────────── ADB (Android projeksiyon / TV) ─────────────────────────
 ADB_TUS = {
@@ -2870,7 +3122,7 @@ class H(BaseHTTPRequestHandler):
                 ozetler.append(o)
             liste = AYAR.get('cihazlar') or []
             ilk = lambda t: next((k for k in liste if k.get('tur') == t), {})
-            d = {'surum': 11, 'adb': ADB_VAR, 'cihazlar': ozetler,
+            d = {'surum': 12, 'bildirimler': BILDIRIMLER[-3:], 'adb': ADB_VAR, 'cihazlar': ozetler,
                  # eski kumanda sayfası için
                  'ayar': {'projeksiyon': ilk('adb').get('adres', ''), 'tv': ilk('lg').get('adres', ''),
                           'mac': ilk('lg').get('mac') or ''}}
@@ -2880,6 +3132,19 @@ class H(BaseHTTPRequestHandler):
                     d['github'] = {'sunucu': 'http://%s:%d' % (ip, PORT), 'k': erisim_anahtari(),
                                    'sayfa': GITHUB_SAYFA}
             self.yanit(200, d)
+        elif yol.path == '/simdi':
+            self.yanit(200, {'kanallar': simdi_yayinda(), 'akis': {'hazir': bool(AKIS['veri']), 'yukleniyor': AKIS['yukleniyor'],
+                                                                    'hata': AKIS['hata']}})
+        elif yol.path == '/ara':
+            self.yanit(200, {'sonuclar': akis_ara(q.get('q', '')[:80])})
+        elif yol.path == '/maclar':
+            self.yanit(200, {'maclar': maclar(), 'akis': {'hazir': bool(AKIS['veri']), 'yukleniyor': AKIS['yukleniyor']}})
+        elif yol.path == '/hatirlatmalar':
+            import shutil
+            self.yanit(200, {'liste': hatirlatmalar(), 'bildirimler': BILDIRIMLER[-10:],
+                             'telefon': bool(shutil.which('termux-notification')), 'once': HATIRLATMA_ONCE})
+        elif yol.path == '/izleme':
+            self.yanit(200, izleme_ozeti())
         elif yol.path == '/tara':
             self.yanit(200, ag_tara())
         elif yol.path == '/girisler':
@@ -2955,7 +3220,10 @@ class H(BaseHTTPRequestHandler):
                 self.send_header('Cache-Control', 'no-store')
                 self.send_header('Content-Length', str(len(veri)))
                 self.end_headers()
-                self.wfile.write(veri)
+                try:
+                    self.wfile.write(veri)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass      # kumanda sayfası kapandı ya da başka moda geçti
             else:
                 self.yanit(404, {'yakalama': getattr(c, 'yakalama', None)})
         elif yol.path == '/simdiki':
@@ -2991,6 +3259,14 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 cid, hata = None, str(e)
             self.yanit(200, {'ok': hata is None, 'id': cid, 'hata': hata})
+            return
+        if self.path == '/hatirla':
+            hid, hata = hatirlatma_ekle(v.get('kanal'), v.get('baslik'), v.get('bas'), v.get('bit'))
+            self.yanit(200, {'ok': hata is None, 'id': hid, 'hata': hata})
+            return
+        if self.path == '/hatirla_sil':
+            hatirlatma_sil(v.get('id', ''))
+            self.yanit(200, {'ok': True})
             return
         if self.path == '/sil':
             self.yanit(200, {'ok': cihaz_sil(v.get('c', ''))})
@@ -3123,6 +3399,8 @@ def main():
         print('•', c.ad, '(%s)' % SISTEM_ADI.get(c.tur, c.tur), '→', c.adres)
         c.baglan_arkada()
     erisim_anahtari()
+    threading.Thread(target=hatirlatma_dongusu, daemon=True).start()
+    threading.Thread(target=izleme_dongusu, daemon=True).start()
     if any(c.tur != 'adb' for c in CIHAZLAR.values()):
         akis_hazirla()   # yayın akışını arkada indir
     print('\nKumanda hazır → tarayıcıda aç: http://127.0.0.1:%d' % PORT)
