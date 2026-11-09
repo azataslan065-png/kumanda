@@ -103,7 +103,6 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 :root[data-tema="acik"] .kanal .akis{color:#3a4152}
 :root[data-tema="acik"] .kanalBtn,:root[data-tema="acik"] .rehberBtn{background:linear-gradient(90deg,#dbe6ff,var(--tus))}
 :root[data-tema="acik"] .bulunanListe .cRow{background:#eef3ff;border-color:#cddbfb}
-:root[data-tema="acik"] .me-bilgi{background:radial-gradient(circle at 50% 40%,#2a3450,#12151d)}
 :root[data-tema="acik"] .bildirim{background:#1d2230;color:#fff}
 :root[data-tema="acik"] .kanal .logo{background:#d9dde7}
 :root[data-tema="acik"] .bulunan button{background:#e3ecff;color:#1d3c7a}
@@ -153,23 +152,30 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 .iz-liste div{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:14px}
 .iz-liste span{grid-column:1/-1;height:6px;border-radius:3px;background:var(--tus);overflow:hidden}
 .iz-liste span i{display:block;height:100%;background:var(--vurgu)}
-.mini-ekran{background:var(--kart);border-radius:16px;margin-bottom:12px;overflow:hidden}
-.me-bas{display:flex;align-items:center;gap:6px;padding:8px 8px 8px 12px;min-height:44px}
-.me-bas .me-y{flex:1;min-width:0;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.me-bas .me-y small{font-weight:500;color:var(--soluk);margin-left:6px}
-.me-bas .canli{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--kirmizi);margin-right:7px;vertical-align:1px;animation:nabiz 1.6s infinite}
 @keyframes nabiz{50%{opacity:.3}}
-.me-bas button{background:var(--tus);border:0;color:var(--yazi);border-radius:10px;min-width:38px;height:34px;font-size:15px;flex:none}
-.me-alan{position:relative;aspect-ratio:16/9;background:#000;display:flex;align-items:center;justify-content:center}
-.me-alan video,.me-alan img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
-.me-bilgi{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;text-align:center;color:#c7cbd6;font-size:13px;line-height:1.45;background:radial-gradient(circle at 50% 40%,#1c2438,#0b0d12)}
-.me-bilgi b{font-size:17px;color:#fff}
-.me-bilgi .logo{width:72px;height:46px;border-radius:10px;background:#353b4b;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#fff;font-weight:800}
-.me-bilgi .logo img{max-width:62px;max-height:38px;object-fit:contain}
-.me-yukleniyor{position:absolute;width:34px;height:34px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:don 1s linear infinite}
-@keyframes don{to{transform:rotate(360deg)}}
-.me-not{display:block;color:var(--soluk);font-size:11.5px;padding:6px 12px 9px;line-height:1.4}
-.mini-ekran.kapali .me-alan,.mini-ekran.kapali .me-not{display:none}
+.ytKart{background:var(--kart);border-radius:16px;padding:12px;margin-bottom:16px}
+.yt-bas{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.yt-bas b{font-size:15px;display:flex;align-items:center;gap:7px}
+.yt-bas b i{display:inline-flex;width:24px;height:17px;border-radius:5px;background:#e62117;align-items:center;justify-content:center;font-style:normal;font-size:9px;color:#fff}
+.yt-bas small{margin-left:auto;color:var(--soluk);font-size:12px}
+.yt-simdi{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.yt-simdi img{width:96px;height:54px;object-fit:cover;border-radius:8px;background:#000;flex:none}
+.yt-simdi .ic{min-width:0;flex:1}
+.yt-simdi .ic b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;line-height:1.3}
+.yt-simdi .ic span{display:block;color:var(--soluk);font-size:12px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.yt-cubuk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--soluk);font-variant-numeric:tabular-nums}
+.yt-cubuk input{flex:1;accent-color:#e62117;height:28px}
+.yt-tuslar{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:8px 0 10px}
+.yt-tuslar .b{min-height:46px;font-size:15px}
+.yt-tuslar .oyn{background:#e62117;color:#fff}
+.yt-sonuc{display:flex;gap:10px;align-items:flex-start;padding:8px 6px;border-radius:12px}
+.yt-sonuc img{width:120px;height:68px;object-fit:cover;border-radius:8px;background:#000;flex:none}
+.yt-sonuc .ic{flex:1;min-width:0}
+.yt-sonuc .ic b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14px;line-height:1.3}
+.yt-sonuc .ic span{display:block;color:var(--soluk);font-size:12px;margin-top:3px}
+.yt-sonuc .dg{display:flex;gap:6px;margin-top:7px}
+.yt-sonuc .dg .b{min-height:34px;font-size:12.5px;padding:0 10px;border-radius:10px}
+.yt-sonuc .dg .ana{background:#e62117;color:#fff}
 .alan select{width:100%;background:var(--bg);border:1px solid var(--tus2);color:var(--yazi);border-radius:10px;padding:11px;font-size:15px;margin-bottom:8px}
 .alan input+input{margin-top:8px}
 .cihazListe{display:flex;flex-direction:column;gap:8px;margin-bottom:4px}
@@ -305,11 +311,6 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
   <div class="yazi"><input id="kodGir" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done"><button class="b" id="kodBtn" style="background:var(--vurgu)">Eşleş</button></div>
   <p style="margin:8px 0 0">TV'de kod görünmüyor ya da süresi geçtiyse <a href="#" id="yeniKod" style="color:#8fb4ff">yeni kod iste</a>.</p></div>
 
-<div class="mini-ekran gizli" id="miniEkran">
-  <div class="me-bas"><span class="me-y" id="meBaslik">TV ekranı</span><button id="meTel" aria-label="Telefonda da izle" class="gizli">📱</button><button id="meKaynak" aria-label="Görüntü kaynağı" class="gizli">📡</button><button id="meSes" aria-label="Ses" class="gizli">🔇</button><button id="meBuyut" aria-label="Tam ekran">⛶</button><button id="meAc" aria-label="Küçült">▾</button></div>
-  <div class="me-alan" id="meAlan"><video id="meVideo" playsinline muted class="gizli"></video><img id="meResim" alt="" class="gizli"><div class="me-bilgi" id="meBilgi"></div><div id="meYt" class="gizli" style="position:absolute;inset:0"></div><div class="me-yukleniyor gizli" id="meYuk"></div></div>
-  <small class="me-not" id="meNot"></small><a class="me-not gizli" id="meUyg" target="_blank" rel="noopener" style="color:#8fb4ff;padding-top:0"></a><a class="me-not gizli" id="meYtBag" href="#" style="color:#8fb4ff;padding-top:0">TV'deki YouTube'u kumandaya bağla: TV'de ne oynuyorsa telefonda da aynı saniyeden izle ›</a>
-</div>
 <div id="anaPanel">
 <div class="sekmeler" data-yalniz="lg adb"><button class="aktif" data-s="kumanda">Kumanda</button><button data-s="ped">Dokunmatik</button></div>
 
@@ -341,6 +342,16 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 <div class="ekler"><button class="b" data-t="REHBER" data-yalniz="lg adb androidtv vidaa"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg><span>Rehber</span></button><button class="b" data-t="SON" data-yalniz="lg adb androidtv"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Son</span></button><button class="b" data-t="ALTYAZI" data-yalniz="lg adb androidtv vidaa"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M7 15h4M13 15h4M7 11h10"/></svg><span>Altyazı</span></button><button class="b" data-t="SES_DILI" data-yalniz="lg adb androidtv"><svg viewBox="0 0 24 24"><path d="M4 5h9M8.5 3v2M6 5c1 4 4 7 7 8M11 5c-1 4-4 7-7 8"/><path d="m13 21 4-9 4 9M14.5 18h5"/></svg><span>Ses dili</span></button><button class="b" data-t="ORAN" data-yalniz="lg"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9v-1h3M18 15v1h-3"/></svg><span>Oran</span></button><button class="b" data-t="LISTE" data-yalniz="lg"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>TV listesi</span></button><button class="b" data-t="CANLI" data-yalniz="lg adb androidtv"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M9 2l3 3 3-3"/></svg><span>Canlı yayın</span></button><button class="b" data-t="UYGULAMALAR" data-yalniz="lg adb androidtv"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><circle cx="17.5" cy="17.5" r="3.5"/></svg><span>Uygulamalar</span></button><button class="b" data-t="INTERNET" data-yalniz="smartcenter"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg><span>İnternet</span></button><button class="b" data-t="FAVORI" data-yalniz="smartcenter"><svg viewBox="0 0 24 24"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg><span>Favoriler</span></button></div>
 <button class="b kanalBtn" id="kanallarBtn" data-yalniz="lg androidtv vidaa smartcenter"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2"/><path d="M8 21h8M9 2l3 3 3-3"/></svg>Kanal listesi</button>
 <button class="b rehberBtn" id="rehberBtn"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M7 13h4M7 17h7"/></svg>Rehber · Şimdi · Maçlar · Ara</button>
+<div class="ytKart" id="ytKart" data-yalniz="lg androidtv vidaa smartcenter">
+  <div class="yt-bas"><b><i>▶</i>YouTube</b><small id="ytDurum"></small></div>
+  <div id="ytSimdi" class="gizli">
+    <div class="yt-simdi"><img id="ytResim" alt=""><div class="ic"><b id="ytBaslik"></b><span id="ytKanal"></span></div></div>
+    <div class="yt-cubuk"><span id="ytZaman">0:00</span><input type="range" id="ytCubuk" min="0" max="100" step="1" value="0" aria-label="Videoda konum"><span id="ytSure">0:00</span></div>
+    <div class="yt-tuslar"><button class="b" data-yt="onceki" aria-label="Önceki video">⏮</button><button class="b" data-yt="geri10" aria-label="10 sn geri">↺10</button><button class="b oyn" data-yt="oynat" id="ytOynat" aria-label="Oynat/Duraklat">⏯</button><button class="b" data-yt="ileri10" aria-label="10 sn ileri">10↻</button><button class="b" data-yt="sonraki" aria-label="Sonraki video">⏭</button></div>
+  </div>
+  <div class="yazi" style="margin-top:0"><input id="ytAraGir" type="search" placeholder="YouTube'da ara, TV'de aç…" autocomplete="off" enterkeyhint="search"><button class="b" id="ytAraBtn">Ara</button></div>
+  <p class="not" id="ytNot"></p>
+</div>
 <div class="baslik">Uygulamalar <button class="tumu" id="tumUygBtn">Tümü ›</button></div>
 <div class="uyg" id="uyg"><button class="b" data-ac="canli" data-yalniz="lg adb"><i>📡</i><span class="uad">Web TV</span></button></div>
 <div data-yalniz="lg adb androidtv">
@@ -464,11 +475,18 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
 </div>
 <div class="akisPerde gizli" id="ytPerde">
   <div class="akisSayfa noSayfa">
-    <h3>YouTube'u kumandaya bağla</h3>
+    <h3>TV'deki YouTube'u kumandaya bağla</h3>
     <p id="ytAciklama">Bir kez yapılır. TV'deki YouTube'da <b>Ayarlar → Telefonu TV'ye bağla → TV kodu ile bağla</b>'ya gir; ekranda çıkan 12 haneli kodu buraya yaz.</p>
     <input id="ytKod" inputmode="numeric" placeholder="123 456 789 012" autocomplete="off" style="text-align:center;letter-spacing:2px;font-size:22px">
     <div class="satir"><button class="b" id="ytVazgec">Vazgeç</button><button class="b ana" id="ytKaydet">Bağla</button></div>
   </div>
+</div>
+<div class="kanalPanel gizli" id="ytPanel">
+  <div class="kp-ust">
+    <div class="kp-bas"><h2>YouTube<small id="ytpAlt"></small></h2><button class="kp-ikon" id="ytpKapat" aria-label="Kapat">✕</button></div>
+    <div class="kp-ara" style="margin:0 16px 10px"><svg class="buyutec" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="ytpAra" type="search" placeholder="YouTube'da ara…" autocomplete="off" enterkeyhint="search"></div>
+  </div>
+  <div class="kp-liste" id="ytpListe"></div>
 </div>
 <div class="akisPerde gizli" id="izlemePerde">
   <div class="akisSayfa">
@@ -516,7 +534,7 @@ function yaz(k,v){try{localStorage.setItem('kmd_'+k,v)}catch(e){}}
   try{ const b=JSON.parse(decodeURIComponent(m[1])); if(b.s&&b.k){ yaz('sunucu',b.s); yaz('anahtar',b.k); yaz('yeni_baglandi','1'); } }catch(e){}
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
-const SAYFA_SURUMU='2026-11-09-A';
+const SAYFA_SURUMU='2026-11-09-B';
 const TV_TURLERI=['lg','androidtv','vidaa','smartcenter'], TOSHIBA=['androidtv','vidaa','smartcenter'];
 const GUNCELLE_KOMUTU='curl -L --remote-name-all https://raw.githubusercontent.com/azataslan065-png/kumanda/main/{kumanda.py,index.html,manifest.webmanifest,sw.js,ikon-192.png,ikon-512.png,ikon-maskable-512.png} && python kumanda.py';
 const YEREL_SAYFA = location.protocol==='http:' && location.port==='8080';
@@ -553,7 +571,7 @@ function titre(){try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}}
 function bildir(t){const b=$('#bildirim');b.textContent=t;b.classList.add('var');clearTimeout(bildir.z);bildir.z=setTimeout(()=>b.classList.remove('var'),2600)}
 function aktif(){return cihazlar.find(c=>c.id===secili)}
 function sonuc(r){ if(r && r.ok===false && !r.ag){ if(r.hata) bildir(r.hata); else if(r.mesaj) bildir(r.mesaj); else if(r.durum && r.durum!=='bagli') bildir('Cihaza bağlanılıyor…'); } return r; }
-function tus(t){titre(); if(!secili) return; return post('/tus',{c:secili,t}).then(r=>{ if(/^(KANAL[+-]|\d|ANA|GERI|TAMAM)$/.test(t) && window.meSor){ clearTimeout(tus.z); tus.z=setTimeout(meSor,1800); } return sonuc(r); })}
+function tus(t){titre(); if(!secili) return; return post('/tus',{c:secili,t}).then(sonuc)}
 
 // ── tuşlar (basılı tutunca tekrar) ──
 $$('[data-t]').forEach(b=>{
@@ -1006,7 +1024,7 @@ async function kanallariYukle(){
 async function kanalAc(k){
   titre();
   const r=await post('/kanal',{c:secili,id:k.id});
-  if(r.ok){ clearTimeout(tus.z); tus.z=setTimeout(meSor,kanalElle?2500:900); simdiki=k.id; bildir((k.no?k.no+' · ':'')+k.ad+(kanalElle?' açılıyor':' açıldı')); $('#kpAra').value=''; kanalPanelKapat(); return; }
+  if(r.ok){ simdiki=k.id; bildir((k.no?k.no+' · ':'')+k.ad+(kanalElle?' açılıyor':' açıldı')); $('#kpAra').value=''; kanalPanelKapat(); return; }
   sonuc(r);
   if(!r.mesaj && !r.hata) bildir('Kanal açılamadı');
 }
@@ -1148,180 +1166,92 @@ const PAYLASILAN = (()=>{ const q=new URLSearchParams(location.search); return i
 if(PAYLASILAN){ try{ history.replaceState(null,'',location.pathname); }catch(e){} }
 
 
-// ── küçük ekran: TV'de ne izleniyorsa kumandada da görünsün ──
-// 1) LG TV ekran görüntüsü veriyorsa → TV'nin o anki ekranı, TV'nin verebildiği hızda kesintisiz yenilenir
-// 2) Vermiyorsa (ya da 📡 ile seçilirse) ve TV bir yayın kanalındaysa → kanalın resmi internet yayını
-// 3) İkisi de yoksa → açık olan kanal/uygulama ve yayın akışı
-const CANLI_YAYIN=[['TRT 1','https://tv-trt1.medya.trt.com.tr/master.m3u8'],['ATV','https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/atv/atv_1080p.m3u8'],['Kanal D','https://demiroren.daioncdn.net/kanald/kanald.m3u8?app=kanald_web&ce=3'],['NOW','https://uycyyuuzyh.turknet.ercdn.net/nphindgytw/nowtv/nowtv.m3u8'],['TV8','https://tv8-live.daioncdn.net/tv8/tv8.m3u8'],['Kanal 7','https://kanal7-live.daioncdn.net/kanal7/kanal7.m3u8'],['A2','https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/a2tv/a2tv.m3u8'],['TV4','https://turkmedya-live.ercdn.net/tv4/tv4.m3u8'],['TRT Haber','https://tv-trthaber.medya.trt.com.tr/master.m3u8'],['A Haber','https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/ahaber/ahaber.m3u8'],['Halk TV','https://halktv-live.daioncdn.net/halktv/halktv.m3u8'],['NTV','https://dogus.daioncdn.net/ntv/ntv.m3u8?app=ntv_web'],['TGRT Haber','https://canli.tgrthaber.com/tgrt.m3u8'],['Tele 1','https://tele1-live.ercdn.net/tele1/tele1.m3u8'],['TVNET','https://tvnet-live.lg.mncdn.com/tvnet/tvnet/playlist.m3u8'],['TV 24','https://turkmedya-live.ercdn.net/tv24/tv24.m3u8'],['GZT','https://gzttv-live.lg.mncdn.com/gzttv/gzttv/playlist.m3u8'],['360','https://turkmedya-live.ercdn.net/tv360/tv360.m3u8'],['TRT Türk','https://tv-trtturk.medya.trt.com.tr/master.m3u8'],['TRT World','https://tv-trtworld.medya.trt.com.tr/master.m3u8'],['TBMM TV','https://meclistv-live.ercdn.net/meclistv/meclistv.m3u8'],['Bloomberg HT','https://ciner-live.daioncdn.net/bloomberght/bloomberght.m3u8'],['CNBC-e','https://hnpsechtsc.turknet.ercdn.net/xpnvudnlsv/cnbc-e/cnbc-e.m3u8'],['Ekotürk','https://cdn.ekoturk.net/hls/master.m3u8'],['A Spor','https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/aspor/aspor.m3u8'],['HT Spor','https://ciner.daioncdn.net/ht-spor/ht-spor.m3u8?app=web'],['TRT Spor Yıldız','https://trt.daioncdn.net/trtspor-yildiz/master.m3u8?app=web&platform=trtspor'],['TRT 3','https://tv-trt3.live.trt.com.tr/master.m3u8'],['TRT Çocuk','https://tv-trtcocuk.medya.trt.com.tr/master.m3u8'],['Minika Çocuk','https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/minikago_cocuk/minikago_cocuk.m3u8'],['Minika GO','https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/minikago/minikago.m3u8'],['TRT Diyanet Çocuk','https://tv-trtdiyanetcocuk.medya.trt.com.tr/master.m3u8'],['TRT Belgesel','https://tv-trtbelgesel.medya.trt.com.tr/master.m3u8'],['TRT 2','https://tv-trt2.medya.trt.com.tr/master.m3u8'],['TRT Genç','https://tv-trtgenc.medya.trt.com.tr/master.m3u8'],['TRT Avaz','https://tv-trtavaz.medya.trt.com.tr/master.m3u8'],['TRT Müzik','https://tv-trtmuzik.medya.trt.com.tr/master.m3u8'],['Kral Pop','https://dogus-live.daioncdn.net/kralpoptv/playlist.m3u8']];
-const YAYIN_TAKMA={trt3spor:'trt3',trtsporyildiz:'trtspor',haberturk:'',tele1tv:'tele1',tv360:'360',kral:'kralpop',kralpoptv:'kralpop',minika:'minikacocuk'};
-function yayinBul(ad){ if(!ad) return null; let k=logoAnahtar(ad); if(k in YAYIN_TAKMA) k=YAYIN_TAKMA[k]; if(!k) return null;
-  const adaylar=[k, k.replace(/tv$/,''), k+'tv'];
-  const y=CANLI_YAYIN.find(([a])=>{ const x=logoAnahtar(a); return adaylar.includes(x) || adaylar.includes(x.replace(/tv$/,'')); });
-  return y?{ad:y[0],url:y[1]}:null; }
-let me={tercih:oku('mini_kaynak','tv'), kare:0, hiz:0, acik:oku('mini_acik','1')==='1', mod:'', url:'', hls:null, resimZ:null, sorZ:null, bilgi:null, cihaz:null, resimYok:false, sesli:false};
-function meKur(){ $('#miniEkran').classList.toggle('kapali',!me.acik); $('#meAc').textContent=me.acik?'▾':'▸'; $('#meAc').setAttribute('aria-label',me.acik?'Küçült':'Göster'); }
-function meVideoDurdur(){ if(me.hls){ try{me.hls.destroy();}catch(e){} me.hls=null; } const v=$('#meVideo'); v.pause(); v.removeAttribute('src'); try{v.load();}catch(e){} v.classList.add('gizli'); me.url=''; $('#meSes').classList.add('gizli'); }
-function meResimDurdur(){ me.nesil=(me.nesil||0)+1; me.resimZ=null; $('#meResim').classList.add('gizli'); }
-function hlsYukle(){ if(window.Hls) return Promise.resolve(true); if(hlsYukle.s) return hlsYukle.s;
-  hlsYukle.s=new Promise(ok=>{ const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js'; s.onload=()=>ok(true); s.onerror=()=>{ hlsYukle.s=null; ok(false); }; document.head.appendChild(s); });
-  return hlsYukle.s; }
-async function meOynat(url){
-  if(me.url===url) return; meVideoDurdur(); meResimDurdur(); me.url=url;
-  const v=$('#meVideo'); v.muted=!me.sesli; $('#meSes').textContent=me.sesli?'🔊':'🔇'; $('#meSes').classList.remove('gizli');
-  $('#meYuk').classList.remove('gizli');
-  const yerel=()=>{ v.src=url; v.play().catch(()=>{}); };
-  if(!v.canPlayType('application/vnd.apple.mpegurl') && await hlsYukle() && window.Hls && Hls.isSupported()){
-    if(me.url!==url) return;
-    // Mobil veride az harcasın: küçük ekrana uygun en düşük kalite
-    me.hls=new Hls({capLevelToPlayerSize:true, startLevel:-1, maxBufferLength:20, backBufferLength:10,
-      // Canlı uca çok yakın oynatmak (önceki sürüm) yayının sık sık takılmasına yol açıyordu;
-      // biraz tampon bırakılır, geride kalırsa fark edilmeyecek kadar hızlanıp yetişir
-      liveSyncDurationCount:2, liveMaxLatencyDurationCount:6, maxLiveSyncPlaybackRate:1.1});
-    let yerelDenendi=false;
-    me.hls.on(Hls.Events.ERROR,(e,d)=>{ if(!d.fatal) return; if(d.type===Hls.ErrorTypes.MEDIA_ERROR){ try{me.hls.recoverMediaError();return;}catch(x){} }
-      try{me.hls.destroy();}catch(x){} me.hls=null; if(!yerelDenendi){ yerelDenendi=true; yerel(); } });
-    me.hls.loadSource(url); me.hls.attachMedia(v); me.hls.on(Hls.Events.MANIFEST_PARSED,()=>v.play().catch(()=>{}));
-  } else yerel();
+
+// ── YouTube: TV'deki YouTube'u kumandadan yönet (konum çubuğu, oynat/duraklat, önceki/sonraki) ve telefondan arayıp TV'de aç ──
+const yt={durum:null, z:null, suruyor:false, sonId:'', bilgi:{}};
+function dk(sn){ sn=Math.max(0,Math.floor(sn||0)); const s=Math.floor(sn/3600), d=Math.floor(sn%3600/60), n=sn%60; return (s?s+':'+String(d).padStart(2,'0'):d)+':'+String(n).padStart(2,'0'); }
+function ytKonum(v){ return v ? v.simdi + (v.durum===1 ? (Date.now()-yt.alindi)/1000 : 0) : 0; }
+function ytCiz(){
+  const r=yt.durum, c=aktif(); if(!r || !c) return;
+  const v=r.durum==='bagli' ? r.video : null;
+  $('#ytSimdi').classList.toggle('gizli', !v);
+  $('#ytDurum').textContent = r.durum==='bagli' ? ('TV\'ye bağlı'+(r.ad?' · '+r.ad:'')) : r.eslesik ? 'TV\'ye bağlanıyor…' : '';
+  const n=$('#ytNot');
+  if(!r.eslesik){ n.innerHTML='TV\'de oynayan videoyu buradan sarmak ve aradığın videoyu TV\'de açmak için <a href="#" id="ytBaglaLink" style="color:#8fb4ff">TV\'deki YouTube\'u kumandaya bağla ›</a> (bir kez).'; $('#ytBaglaLink').onclick=e=>{ e.preventDefault(); ytBaglaAc(); }; }
+  else if(!v) n.textContent = r.durum==='bagli' ? 'TV\'de YouTube\'da bir video açınca burada görünür. Aradığın videoyu TV\'de açabilirsin.' : (r.mesaj||'TV\'deki YouTube açık olmalı.');
+  else n.textContent='';
+  if(!v) return;
+  if(v.id!==yt.sonId){ yt.sonId=v.id; $('#ytResim').src='https://i.ytimg.com/vi/'+encodeURIComponent(v.id)+'/mqdefault.jpg'; $('#ytBaslik').textContent=v.baslik||'YouTube videosu'; $('#ytKanal').textContent=v.kanal||''; }
+  if(v.baslik && $('#ytBaslik').textContent!==v.baslik){ $('#ytBaslik').textContent=v.baslik; $('#ytKanal').textContent=v.kanal||''; }
+  const t=ytKonum(v), cb=$('#ytCubuk');
+  cb.max=Math.max(1,Math.round(v.sure||0)); if(!yt.suruyor) cb.value=Math.round(t);
+  $('#ytZaman').textContent=dk(yt.suruyor?+cb.value:t); $('#ytSure').textContent=v.sure?dk(v.sure):'canlı';
+  $('#ytOynat').textContent = v.durum===1 ? '⏸' : '▶';
 }
-$('#meVideo').addEventListener('playing',()=>{ $('#meYuk').classList.add('gizli'); $('#meVideo').classList.remove('gizli'); $('#meBilgi').classList.add('gizli'); });
-$('#meVideo').addEventListener('error',()=>{ if(!me.url) return; meVideoDurdur(); me.hataliUrl=me.hataliKonum; bildir('Kanalın internet yayını açılamadı, TV ekranı gösteriliyor'); meCiz(); });
-function meResimBaslat(){
-  if(me.resimZ||me.resimYok) return; meVideoDurdur(); $('#meYuk').classList.remove('gizli');
-  const img=$('#meResim'), c=me.cihaz, nesil=me.nesil; me.resimZ=true; let sonUrl='';
-  // Köprü yeni kare gelene kadar bekletir; gelir gelmez bir sonrakini istiyoruz → TV'nin verebildiği en yüksek hız
-  const getir=async()=>{
-    if(me.nesil!==nesil||me.mod!=='resim'||me.cihaz!==c||!me.acik||document.hidden){ if(me.nesil===nesil) me.resimZ=null; return; }
-    let r=null; try{ r=await fetch(SUNUCU+'/ekran_resim?c='+encodeURIComponent(c)+'&onceki='+me.kare+(ANAHTAR?'&k='+encodeURIComponent(ANAHTAR):''), secenek({cache:'no-store'})); }catch(e){}
-    if(me.nesil!==nesil||me.mod!=='resim'||me.cihaz!==c){ if(me.nesil===nesil) me.resimZ=null; return; }
-    if(!r || !r.ok){ let j={}; try{ j=r?await r.json():{}; }catch(e){}
-      if(j.yakalama===false || !r){ me.resimYok=!!r; me.resimZ=null; $('#meYuk').classList.add('gizli'); if(r) meCiz(); else setTimeout(()=>{ me.resimZ=null; meResimBaslat(); },2000); return; }
-      setTimeout(getir,300); return; }
-    const blob=await r.blob(); if(me.nesil!==nesil||me.mod!=='resim'){ if(me.nesil===nesil) me.resimZ=null; return; } me.kare=+(r.headers.get('X-Kare')||0); me.hiz=+(r.headers.get('X-Hiz')||0);
-    const u=URL.createObjectURL(blob); img.onload=()=>{ if(sonUrl) URL.revokeObjectURL(sonUrl); sonUrl=u; }; img.src=u;
-    img.classList.remove('gizli'); $('#meBilgi').classList.add('gizli'); $('#meYuk').classList.add('gizli');
-    if(me.hiz) $('#meNot').textContent='TV\'nin o anki ekranı (≈'+me.hiz.toLocaleString('tr-TR')+' kare/sn, TV\'nin verebildiği hız). TV ekranı ses vermez'+(me.bilgi&&me.bilgi.kanal&&yayinBul(me.bilgi.kanal.ad)?'; sesli ve akıcı izlemek için 📡.':'.');
-    getir();
-  };
-  getir();
+async function ytSor(){
+  clearTimeout(yt.z); const c=aktif();
+  const gorunur = c && TV_TURLERI.includes(c.tur) && c.durum==='bagli' && !document.hidden && !(kopruSurum && kopruSurum<14);
+  if(gorunur){ try{ const r=await getj('/youtube?c='+encodeURIComponent(c.id)); if(secili===c.id){ yt.durum=r; yt.alindi=Date.now(); ytCiz(); } }catch(e){} }
+  yt.z=setTimeout(ytSor, yt.durum && yt.durum.video ? 1000 : 4000);
+  if(gorunur && !yt.cizZ){ yt.cizZ=setInterval(()=>{ if(yt.durum && yt.durum.video && yt.durum.video.durum===1) ytCiz(); },250); }
 }
-function meBilgiYaz(baslik, alt, kanal){
-  const b=$('#meBilgi'); b.innerHTML=''; b.classList.remove('gizli'); $('#meYuk').classList.add('gizli');
-  if(kanal){ const lg=document.createElement('span'); lg.className='logo'; const url=logoBul(kanal.ad);
-    const harf=()=>{ lg.innerHTML=''; lg.style.background=renk(kanal.ad); lg.textContent=harfRozet(kanal.ad); };
-    if(url){ const im=document.createElement('img'); im.src=url; im.alt=''; im.onerror=harf; lg.appendChild(im); } else harf(); b.appendChild(lg); }
-  const x=document.createElement('b'); x.textContent=baslik; b.appendChild(x);
-  if(alt){ const s=document.createElement('span'); s.textContent=alt; b.appendChild(s); }
+async function ytKomut(komut, t){
+  titre(); if(!secili) return;
+  const r=await post('/youtube_komut',{c:secili,komut,t:t==null?'':t});
+  if(!r.ok){ bildir(r.hata||'TV\'deki YouTube komutu almadı'); return; }
+  setTimeout(ytSor,350);
 }
-function meCiz(){
-  const d=me.bilgi, c=aktif(), k=d&&d.kanal;
-  if(!d||!d.bagli){ $('#miniEkran').classList.add('gizli'); meVideoDurdur(); meResimDurdur(); return; }
-  $('#miniEkran').classList.remove('gizli'); meKur();
-  const simdi=(k&&k.akis||[]).find(p=>p[0]<=simdiSn()&&p[1]>simdiSn());
-  const baslik=k ? ((k.no?k.no+' · ':'')+k.ad) : (d.uygulama_adi||'TV ekranı');
-  const y = k && yayinBul(k.ad);
-  const konum = y ? 'yayin:'+y.url : '';
-  const ekranVar = d.resim && !me.resimYok && c && c.tur==='lg', yayinVar = y && me.hataliUrl!==konum;
-  let mod = (ekranVar && (me.tercih!=='yayin' || !yayinVar)) ? 'resim' : yayinVar ? 'yayin' : 'bilgi';
-  const yt=d.youtube; if(!yt) me.ytAcik=false;
-  if(yt && me.ytAcik) mod='yt';
-  $('#meTel').classList.toggle('gizli',!yt); $('#meTel').textContent = mod==='yt' ? '🖥' : '📱';
-  $('#meTel').setAttribute('aria-label', mod==='yt' ? 'TV ekranına dön' : 'Telefonda da izle (sesli)');
-  if(mod!=='yt') meYtKapat();
-  // 📡 her zaman görünür kalır (yayın bir kez açılamadıysa da yeniden denenebilir)
-  $('#meKaynak').classList.toggle('gizli', !(ekranVar && y)); $('#meKaynak').textContent = mod==='yayin' ? '🖥' : '📡';
-  $('#meKaynak').setAttribute('aria-label', mod==='yayin' ? 'TV ekranını göster' : 'İnternet yayınını göster (sesli)');
-  // Korumalı yayınlar (TOD, Netflix…): TV ekran görüntüsünde siyah verir; telefonda kendi uygulamasında izlenebilir
-  const ad=(d.uygulama_adi||d.uygulama||''), korumali=/\b(tod|netflix|disney|prime|amazon|exxen|blutv|tabii|gain)\b/i.test(ad.replace(/[._-]/g,' '));
-  const ua=$('#meUyg'); ua.classList.toggle('gizli', !(korumali && mod==='resim'));
-  const ytBag=$('#meYtBag'), ytApp=/youtube/i.test(ad);
-  ytBag.classList.toggle('gizli', !(ytApp && d.youtube_eslesik===false));
-  if(korumali){ const site={tod:'https://www.tod.tv',netflix:'https://www.netflix.com',disney:'https://www.disneyplus.com',prime:'https://www.primevideo.com',amazon:'https://www.primevideo.com',exxen:'https://www.exxen.com',blutv:'https://www.blutv.com',tabii:'https://www.tabii.com',gain:'https://www.gain.tv'}[(ad.match(/tod|netflix|disney|prime|amazon|exxen|blutv|tabii|gain/i)||[''])[0].toLowerCase()];
-    ua.href=site||'#'; ua.textContent=(d.uygulama_adi||'Bu uygulama')+' korumalı yayın: TV görüntüsü siyah gelir. Telefonda kendi uygulamasında izle ›'; }
-  me.mod=mod; me.hataliKonum=konum;
-  $('#meBaslik').innerHTML=''; const sp=document.createElement('span'); if(mod!=='bilgi') sp.className='canli'; $('#meBaslik').append(sp, baslik);
-  if(simdi){ const s=document.createElement('small'); s.textContent=simdi[2]; $('#meBaslik').appendChild(s); }
-  $('#meBuyut').classList.toggle('gizli', mod==='bilgi');
-  if(!me.acik){ meVideoDurdur(); meResimDurdur(); $('#meNot').textContent=''; return; }
-  if(mod==='yt'){ meVideoDurdur(); meResimDurdur(); meYtAc(yt); $('#meBilgi').classList.add('gizli');
-    $('#meNot').textContent = yt.canli ? 'TV\'deki video telefonda da oynuyor; TV\'de durdurma, ileri-geri sarma ve video değişikliği buraya da geçer.'
-      : 'TV\'ye gönderdiğin video telefonda da oynuyor, TV\'de kaldığı yerden başladı. TV\'deki YouTube\'u kumandaya bağlarsan durdurma ve sarma da buraya geçer.'; }
-  else if(mod==='yayin'){ meResimDurdur(); if(me.url!==y.url){ meBilgiYaz(baslik,'Yayın açılıyor…',k); meOynat(y.url); }
-    $('#meNot').textContent=(d.resim && c && c.tur==='lg' ? 'İnternet yayını, uydudan gelen TV yayınından birkaç saniye geride kalır. Gecikmesiz görüntü için 🖥 TV ekranı. ' : 'İnternet yayını, uydudan gelen TV yayınından birkaç saniye geride kalır (en aza indirildi). ')+'Mobil veride veri harcar.'; }
-  else if(mod==='resim'){ meVideoDurdur(); meResimBaslat(); if(!me.hiz) $('#meNot').textContent='TV\'nin o anki ekranı, kesintisiz yenileniyor.'+(y?' Ses yok; sesli ve akıcı izlemek için 📡.':''); }
-  else { meVideoDurdur(); meResimDurdur();
-    const alt = simdi ? simdi[2] : k ? 'Bu kanalın internet yayını yok, görüntü gösterilemiyor.' : d.uygulama_adi ? 'TV\'de bu uygulama açık.' : 'TV\'de ne açık olduğu bilinmiyor.';
-    meBilgiYaz(k?k.ad:(d.uygulama_adi||'TV açık'), alt, k);
-    $('#meNot').textContent = k && !y ? 'Bu kanalın internet yayını Canlı TV listesinde yok; görüntü gösterilemiyor.' : c && c.tur==='lg' ? 'TV ekran görüntüsü vermiyor. Yayın kanallarında internet yayını oynatılır.' : 'Yayın kanallarında kanalın internet yayını oynatılır.'; }
-}
-async function meSor(){
-  clearTimeout(me.sorZ); const c=aktif();
-  if(!c || c.tur==='adb' || !TV_TURLERI.includes(c.tur) || c.durum!=='bagli' || (kopruSurum && kopruSurum<11)){ me.bilgi=null; meCiz(); me.sorZ=setTimeout(meSor,4000); return; }
-  if(me.cihaz!==c.id){ me.cihaz=c.id; me.kare=0; me.hiz=0; me.resimYok=false; me.hataliUrl=''; meVideoDurdur(); meResimDurdur(); }
-  if(!document.hidden){ try{ const r=await getj('/ekran?c='+encodeURIComponent(c.id)); if(me.cihaz===c.id){ me.bilgi=r; me.bilgiZaman=Date.now(); meCiz(); } }catch(e){} }
-  me.sorZ=setTimeout(meSor, 4000);
-}
-// ── kumandadan gönderilen YouTube videosu: telefonda da aynı yerden ──
-// Telefondaki oynatıcı YouTube IFrame API ile yönetilir: TV'deki YouTube'a bağlıysa (canlı) video, saniye,
-// duraklatma ve ileri/geri sarma her saniye TV'den alınıp telefona uygulanır.
-let ytOyn=null, ytZ=null, ytHazir=false;
-function ytApiYukle(){ if(window.YT && YT.Player) return Promise.resolve(true); if(ytApiYukle.s) return ytApiYukle.s;
-  ytApiYukle.s=new Promise(ok=>{ const eski=window.onYouTubeIframeAPIReady; window.onYouTubeIframeAPIReady=()=>{ eski&&eski(); ok(true); };
-    const sc=document.createElement('script'); sc.src='https://www.youtube.com/iframe_api'; sc.onerror=()=>{ ytApiYukle.s=null; ok(false); }; document.head.appendChild(sc); });
-  return ytApiYukle.s; }
-function ytHedef(yt){ // TV'deki konum (saniye), şu an
-  if(yt.canli) return yt.simdi + (yt.durum===1 ? (Date.now()-me.bilgiZaman)/1000 : 0);
-  return yt.gecen + (Date.now()-me.bilgiZaman)/1000; }
-async function meYtAc(yt){
-  const k=$('#meYt'); k.classList.remove('gizli');
-  if(k.dataset.id===yt.id && ytOyn) return;
-  if(ytOyn && ytHazir){ k.dataset.id=yt.id; try{ ytOyn.loadVideoById(yt.id, ytHedef(yt)); }catch(e){} return; }   // TV'de video değişti
-  k.dataset.id=yt.id; k.innerHTML='<div id="meYtOyn" style="width:100%;height:100%"></div>'; ytHazir=false;
-  const bas=Math.max(0,Math.round(ytHedef(yt)));
-  if(!(await ytApiYukle())){ // API yüklenemezse basit oynatıcı
-    k.innerHTML=''; const f=document.createElement('iframe'); f.allow='autoplay; encrypted-media; fullscreen'; f.style.cssText='width:100%;height:100%;border:0';
-    f.src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(yt.id)+'?autoplay=1&playsinline=1&start='+bas+'&rel=0'; k.appendChild(f); return; }
-  if(k.dataset.id!==yt.id) return;
-  ytOyn=new YT.Player('meYtOyn',{videoId:yt.id, width:'100%', height:'100%',
-    playerVars:{autoplay:1, playsinline:1, start:bas, rel:0, modestbranding:1},
-    events:{onReady:e=>{ ytHazir=true; if(yt.canli && yt.durum===2){ e.target.seekTo(ytHedef(yt),true); e.target.pauseVideo(); } else e.target.playVideo(); }}});
-  clearInterval(ytZ); ytZ=setInterval(ytEsle,1000);
-}
-async function ytEsle(){
-  if(me.mod!=='yt' || !ytOyn || !ytHazir || document.hidden) return;
-  const c=aktif(); if(!c) return;
-  let r; try{ r=await getj('/youtube?c='+encodeURIComponent(c.id)); }catch(e){ return; }
-  const v=r.video; if(!v || r.durum!=='bagli') return;               // TV'ye bağlı değilse yalnızca ilk konumdan oynar
-  const hedef=v.simdi, p=ytOyn;
-  try{
-    const id=(p.getVideoData()||{}).video_id;
-    if(id!==v.id){ p.loadVideoById(v.id, hedef); $('#meYt').dataset.id=v.id; return; }
-    const st=p.getPlayerState();       // 1 oynuyor, 2 duraklatıldı, 3 yükleniyor
-    if(v.durum===2 && st===1) p.pauseVideo();
-    if(v.durum===1 && (st===2 || st===5 || st===-1)) p.playVideo();
-    if(Math.abs(p.getCurrentTime()-hedef) > (v.durum===1 ? 2.5 : 0.8)) p.seekTo(hedef, true);   // TV'de ileri/geri sarıldı
-  }catch(e){}
-}
-function meYtKapat(){ clearInterval(ytZ); const k=$('#meYt'); if(k.dataset.id){ try{ ytOyn&&ytOyn.destroy(); }catch(e){} ytOyn=null; k.innerHTML=''; delete k.dataset.id; } k.classList.add('gizli'); }
-$('#meYtBag').onclick=async e=>{ e.preventDefault(); titre(); const c=aktif(); if(!c) return;
-  $('#ytKod').value=''; $('#ytAciklama').innerHTML='TV\'ye kendiliğinden bağlanılmaya çalışılıyor…'; $('#ytPerde').classList.remove('gizli');
+$$('[data-yt]').forEach(b=>b.onclick=()=>{ const v=yt.durum&&yt.durum.video, t=ytKonum(v), k=b.dataset.yt;
+  if(k==='oynat') ytKomut(v&&v.durum===1?'duraklat':'oynat');
+  else if(k==='geri10') ytKomut('sar', Math.max(0,t-10));
+  else if(k==='ileri10') ytKomut('sar', v&&v.sure?Math.min(v.sure-1,t+10):t+10);
+  else ytKomut(k); });
+$('#ytCubuk').addEventListener('input',()=>{ yt.suruyor=true; $('#ytZaman').textContent=dk(+$('#ytCubuk').value); });
+$('#ytCubuk').addEventListener('change',()=>{ const t=+$('#ytCubuk').value; yt.suruyor=false; if(yt.durum&&yt.durum.video){ yt.durum.video.simdi=t; yt.alindi=Date.now(); } ytKomut('sar',t); });
+// eşleşme (bir kez)
+async function ytBaglaAc(){ titre(); const c=aktif(); if(!c) return;
+  $('#ytKod').value=''; $('#ytAciklama').innerHTML='TV\'ye kendiliğinden bağlanılmaya çalışılıyor… (TV\'de YouTube açık olsun)'; $('#ytPerde').classList.remove('gizli');
   const r=await post('/youtube_bagla',{c:c.id});
-  if(r.ok){ $('#ytPerde').classList.add('gizli'); bildir('YouTube kumandaya bağlandı ✓'); setTimeout(meSor,1500); return; }
-  $('#ytAciklama').innerHTML='Bir kez yapılır. TV\'deki YouTube\'da <b>Ayarlar → Telefonu TV\'ye bağla → TV kodu ile bağla</b>\'ya gir; ekranda çıkan 12 haneli kodu buraya yaz.'; $('#ytKod').focus(); };
+  if(r.ok){ $('#ytPerde').classList.add('gizli'); bildir('YouTube kumandaya bağlandı ✓'); setTimeout(ytSor,1500); return; }
+  $('#ytAciklama').innerHTML='Bir kez yapılır. TV\'deki YouTube\'da <b>Ayarlar → Telefonu TV\'ye bağla → TV kodu ile bağla</b>\'ya gir; ekranda çıkan 12 haneli kodu buraya yaz.'; $('#ytKod').focus(); }
 $('#ytKaydet').onclick=async()=>{ const kod=$('#ytKod').value.replace(/\D/g,''); if(kod.length<8){ bildir('12 haneli kodu yaz'); return; }
   titre(); $('#ytKaydet').disabled=true; const r=await post('/youtube_bagla',{c:secili,kod}); $('#ytKaydet').disabled=false;
-  if(r.ok){ $('#ytPerde').classList.add('gizli'); bildir('YouTube kumandaya bağlandı ✓ Bir daha sorulmaz'); setTimeout(meSor,1500); } else bildir(r.hata||'Bağlanamadı'); };
+  if(r.ok){ $('#ytPerde').classList.add('gizli'); bildir('YouTube kumandaya bağlandı ✓ Bir daha sorulmaz'); setTimeout(ytSor,1500); } else bildir(r.hata||'Bağlanamadı'); };
 $('#ytVazgec').onclick=()=>$('#ytPerde').classList.add('gizli');
 $('#ytPerde').addEventListener('click',e=>{ if(e.target.id==='ytPerde') $('#ytPerde').classList.add('gizli'); });
-$('#meTel').onclick=()=>{ titre(); me.ytAcik=!me.ytAcik; meCiz(); };
-$('#meKaynak').onclick=()=>{ titre(); me.tercih = me.mod==='yayin' ? 'tv' : 'yayin'; yaz('mini_kaynak',me.tercih); me.hataliUrl='';
-  if(me.tercih==='yayin') me.sesli=true;   // dokunuşla açıldığı için tarayıcı sese izin verir
-  meCiz(); };
-$('#meAc').onclick=()=>{ titre(); me.acik=!me.acik; yaz('mini_acik',me.acik?'1':'0'); meCiz(); };
-$('#meSes').onclick=()=>{ titre(); me.sesli=!me.sesli; const v=$('#meVideo'); v.muted=!me.sesli; if(me.sesli) v.play().catch(()=>{}); $('#meSes').textContent=me.sesli?'🔊':'🔇'; };
-$('#meBuyut').onclick=()=>{ titre(); const a=$('#meAlan'); (a.requestFullscreen||a.webkitRequestFullscreen||(()=>{})).call(a); };
-document.addEventListener('visibilitychange',()=>{ if(document.hidden){ $('#meVideo').pause(); } else { if(me.url) $('#meVideo').play().catch(()=>{}); if(me.mod==='resim' && !me.resimZ) meResimBaslat(); meSor(); } });
-meKur(); setTimeout(meSor,1500);
-
+// arama
+async function ytAra(q){
+  q=(q||'').trim(); if(!q) return;
+  $('#ytPanel').classList.remove('gizli'); document.body.style.overflow='hidden'; try{ history.pushState({ytp:1},''); }catch(e){}
+  $('#ytpAra').value=q; const L=$('#ytpListe'); L.innerHTML='<div class="kp-bos">Aranıyor…</div>'; $('#ytpAlt').textContent='';
+  if(kopruSurum && kopruSurum<14){ L.innerHTML='<div class="kp-bos">YouTube araması için Termux\'taki köprüyü güncelle.</div>'; return; }
+  let r; try{ r=await getj('/youtube_ara?q='+encodeURIComponent(q)); }catch(e){ L.innerHTML='<div class="kp-bos">Köprüye ulaşılamadı.</div>'; return; }
+  if($('#ytpAra').value.trim()!==q) return;
+  L.innerHTML=''; const l=r.sonuclar||[]; $('#ytpAlt').textContent=l.length+' video';
+  if(r.hata && !l.length){ L.innerHTML='<div class="kp-bos">'+r.hata.replace(/[<>&]/g,'')+'</div>'; return; }
+  if(!l.length){ L.innerHTML='<div class="kp-bos">Sonuç yok.</div>'; return; }
+  const sirali = yt.durum && yt.durum.durum==='bagli';
+  l.forEach(x=>{ const d=document.createElement('div'); d.className='yt-sonuc';
+    const im=document.createElement('img'); im.loading='lazy'; im.alt=''; im.src='https://i.ytimg.com/vi/'+encodeURIComponent(x.id)+'/mqdefault.jpg';
+    const ic=document.createElement('div'); ic.className='ic'; const b=document.createElement('b'); b.textContent=x.baslik;
+    const a=document.createElement('span'); a.textContent=[x.kanal, x.sure, x.izlenme, x.zaman].filter(Boolean).join(' · ');
+    const dg=document.createElement('div'); dg.className='dg';
+    const o=document.createElement('button'); o.className='b ana'; o.textContent='▶ TV\'de oynat';
+    o.onclick=async()=>{ titre(); const r=await post('/youtube_oynat',{c:secili,id:x.id}); if(r.ok){ bildir('TV\'de açılıyor: '+x.baslik); ytPanelKapat(); setTimeout(ytSor,1500); } else bildir(r.hata||'Açılamadı'); };
+    dg.appendChild(o);
+    if(sirali){ const q2=document.createElement('button'); q2.className='b'; q2.textContent='+ Sıraya ekle';
+      q2.onclick=async()=>{ titre(); const r=await post('/youtube_oynat',{c:secili,id:x.id,sira:'1'}); if(r.ok){ q2.textContent='✓ Sırada'; q2.disabled=true; bildir('Sıraya eklendi: '+x.baslik); } else bildir(r.hata||'Eklenemedi'); };
+      dg.appendChild(q2); }
+    ic.append(b,a,dg); d.append(im,ic); L.appendChild(d); });
+}
+function ytPanelKapat(){ if($('#ytPanel').classList.contains('gizli')) return; $('#ytPanel').classList.add('gizli'); document.body.style.overflow=''; $('#ytpAra').blur(); try{ if(history.state&&history.state.ytp) history.back(); }catch(e){} }
+$('#ytAraBtn').onclick=()=>{ titre(); ytAra($('#ytAraGir').value); };
+$('#ytAraGir').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#ytAraGir').blur(); ytAra($('#ytAraGir').value); } });
+$('#ytpAra').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#ytpAra').blur(); ytAra($('#ytpAra').value); } });
+$('#ytpKapat').onclick=ytPanelKapat;
+window.addEventListener('popstate',()=>{ if(!$('#ytPanel').classList.contains('gizli')){ $('#ytPanel').classList.add('gizli'); document.body.style.overflow=''; } });
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) ytSor(); });
+setTimeout(ytSor,1500);
 
 // ── ortak: süre/saat yazımı ──
 function sureYaz(sn){ sn=Math.round(sn/60); const s=Math.floor(sn/60), d=sn%60; return s ? (s+' sa'+(d?' '+d+' dk':'')) : (d+' dk'); }
@@ -1523,6 +1453,9 @@ async function komutCalistir(metin){
   let m;
   if(/\b(ne zaman|saat kacta|hangi kanalda|kacta)\b/.test(s)){ const q=s.replace(/\b(ne zaman|saat kacta|hangi kanalda|kacta|mac[iı]?|var mi|bugun)\b/g,' ').trim(); rehberAc('ara', q); return 'Rehberde aranıyor: '+q; }
   if(/\bmac(lar)?\b.*\b(listesi|takvimi|goster|ac)\b|^maclar$|bugun hangi mac/.test(s)){ rehberAc('maclar'); return 'Maç takvimi açılıyor'; }
+  if((m=s.match(/^youtube(?:da|ta)? (.+?) (?:ara|ac|oynat|bul|izle)$/))){ // aramada Türkçe harfler korunsun
+    const q=String(metin).replace(/^\s*youtube\S*\s*/i,'').replace(/\s+(ara|aç|ac|oynat|bul|izle)\s*$/i,'').trim()||m[1];
+    $('#ytAraGir').value=q; ytAra(q); return 'YouTube\'da aranıyor: '+q; }
   if(/simdi ne var|ne izlesem|su an ne var/.test(s)){ rehberAc('simdi'); return 'Şimdi yayında olanlar'; }
   if(/\b(tv(yi)?|televizyon(u)?)\b.*\b(kapat|kapa)\b|^kapat$/.test(s)){ await post('/tus',{c:secili,t:'GUC'}); return 'TV kapatılıyor'; }
   if(/\b(tv(yi)?|televizyon(u)?)\b.*\bac\b/.test(s) && c.durum!=='bagli'){ await post('/tus',{c:secili,t:'GUC'}); return 'TV açılıyor'; }

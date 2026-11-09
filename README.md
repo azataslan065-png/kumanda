@@ -28,13 +28,10 @@ Sonra tarayıcıda `http://127.0.0.1:8080` → ⚙ → "Ağda ara" → bulunan c
 
 Termux arka planda kapanmasın: Termux bildiriminde **Acquire wakelock**, Android ayarlarında Termux için pil **Kısıtlanmamış**.
 
-## Küçük ekran
-Kumandanın üstünde TV'de o an ne açıksa görünür:
-- TV bir yayın kanalındaysa ve kanalın resmi internet yayını Canlı TV listesinde varsa, o yayın oynatılır
-  (sessiz başlar, TV'den birkaç saniye geride olabilir, mobil veride veri harcar; en düşük kalite seçilir).
-- LG TV ekran görüntüsü veriyorsa TV'nin o anki ekranı kesintisiz (en fazla 15 kare/sn) gösterilir; 📡 ile kanalın internet yayınına geçilir (webOS `executeOneShot`;
-  Netflix gibi korumalı içerikte TV siyah verir, bazı TV'ler hiç vermez).
-- İkisi de yoksa açık kanalın adı ve yayın akışı gösterilir. ▾ ile küçültülür.
+## YouTube
+- TV'deki YouTube bir kez kumandaya bağlanır (kendiliğinden ya da TV'deki YouTube → Ayarlar → Telefonu TV'ye bağla → TV kodu).
+- Kumandadaki YouTube kartında TV'de oynayan video, konum çubuğu (kaydırınca TV'de sarar), ⏮ ↺10 ⏯ 10↻ ⏭.
+- "YouTube'da ara": sonuçlardan **TV'de oynat** ya da **Sıraya ekle**. Sesle: "YouTube'da … ara".
 
 ## Rehber, hatırlatma, izleme süresi
 - **Rehber** (kanal listesinin altında): *Şimdi* — tüm kanallarda şu an ne var; *Maçlar* — yayın akışlarından bulunan

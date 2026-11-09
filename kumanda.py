@@ -402,8 +402,6 @@ def _resim_turu(v):
     if v.lstrip()[:5] in (b'<svg ', b'<?xml'): return 'image/svg+xml'
     return None
 
-YAKALAMA_ISCI = 2
-
 class LGTV:
     tur = 'lg'
 
@@ -423,10 +421,6 @@ class LGTV:
         self.uygulamalar = []   # TV'de yüklü uygulamalar
         self.klavye = None      # TV'de yazı kutusu seçili mi (None = bilinmiyor)
         self.yazi_izni = None   # TV yazı gönderme iznini verdi mi
-        self.yakalama = None    # TV ekran görüntüsü veriyor mu
-        self.yakalaniyor = False
-        self.kare = None        # (sıra, veri, tür, kare/sn)
-        self.kare_istek = 0
 
     def ozet(self):
         # Sayfa durumu düzenli sorduğu için: TV kendi kumandasıyla açılırsa burada yakalanır.
@@ -731,82 +725,13 @@ class LGTV:
     def ekran_bilgisi(self):
         app = self.on_plan()
         out = {'uygulama': app, 'uygulama_adi': next((a['ad'] for a in self.uygulamalar if a['id'] == app), ''),
-               'kanal': None, 'resim': self.yakalama is not False}
+               'kanal': None}
         if not app or 'livetv' in app or app.startswith('com.webos.app.tv'):
             p = (self.istek('ssap://tv/getCurrentChannel', sure=3) or {}).get('payload') or {}
             if p.get('channelName'):
                 out['kanal'] = {'ad': p['channelName'].strip(), 'no': str(p.get('channelNumber') or ''),
                                 'akis': kanal_akisi(p['channelName'])[:2]}
         return out
-
-    def ekran_resmi(self):
-        """TV'nin o anki görüntüsü (webOS 'executeOneShot'). Kopya korumalı içerikte TV siyah verir."""
-        c = self.istek('ssap://tv/executeOneShot', {}, sure=6)
-        p = (c or {}).get('payload') or {}
-        url = p.get('imageUri')
-        if not url:
-            if c is not None:
-                self.yakalama = False
-            return None, None
-        self.yakalama = True
-        u = urlparse(url)
-        if u.hostname in ('localhost', '127.0.0.1') and self.adres not in ('localhost', '127.0.0.1'):
-            url = url.replace(u.hostname, self.adres, 1)
-        import urllib.request
-        b = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        b.check_hostname, b.verify_mode = False, ssl.CERT_NONE
-        try:
-            with urllib.request.urlopen(url, timeout=5, context=b) as y:
-                veri = y.read(4 * 1024 * 1024)
-        except Exception:
-            return None, None
-        tur = _resim_turu(veri)
-        return (veri, tur) if tur else (None, None)
-
-    def kare_al(self, onceki=0, sure=3):
-        """Sürekli yakalama: sayfa istedikçe arkadaki döngü TV'den verebildiği hızda kare alır;
-        bu çağrı bir öncekinden yeni kare gelene kadar bekler (sayfa boşuna sormasın)."""
-        self.kare_istek = time.time()
-        with self.kilit:
-            if not self.yakalaniyor:
-                # TV her kareyi ayrı bir istekle verir; tek istekte en çok bekleme ağda ve TV'nin dosyayı
-                # yazmasında geçer. İki isteği üst üste gönderince kare hızı neredeyse ikiye katlanır.
-                self.yakalaniyor = YAKALAMA_ISCI
-                self._zamanlar, self._son_bas = [], 0
-                for _ in range(YAKALAMA_ISCI):
-                    threading.Thread(target=self._yakala_dongu, daemon=True).start()
-                    time.sleep(0.05)
-        son = time.time() + sure
-        while time.time() < son:
-            k = self.kare
-            if k and k[0] > onceki:
-                return k
-            if self.yakalama is False:
-                return None
-            time.sleep(0.02)
-        return None
-
-    def _yakala_dongu(self):
-        try:
-            while time.time() - self.kare_istek < 4 and self.durum == 'bagli':
-                bas = time.time()
-                veri, tur = self.ekran_resmi()
-                if veri:
-                    with self.kilit:
-                        if bas > self._son_bas:          # sonradan çekilmiş kare önce geldiyse eskisini gösterme
-                            self._son_bas = bas
-                            z = self._zamanlar = (self._zamanlar + [time.time()])[-12:]
-                            hiz = (len(z) - 1) / (z[-1] - z[0]) if len(z) > 1 and z[-1] > z[0] else 0
-                            self.kare = ((self.kare[0] if self.kare else 0) + 1, veri, tur, round(hiz, 1))
-                    # En fazla 15 kare/sn: göz için yeterli, TV'yi ve telefonu yormaz
-                    time.sleep(max(0, YAKALAMA_ISCI / 15 - (time.time() - bas)))
-                elif self.yakalama is False:
-                    break
-                else:
-                    time.sleep(0.3)
-        finally:
-            with self.kilit:
-                self.yakalaniyor = max(0, int(self.yakalaniyor) - 1)
 
     def girisler(self):
         c = self.istek('ssap://tv/getExternalInputList')
@@ -2736,7 +2661,7 @@ def ekran_bilgisi(c):
     """Kumandadaki küçük ekran: TV'de hangi kanal/uygulama açık."""
     if isinstance(c, LGTV):
         return c.ekran_bilgisi()
-    out = {'uygulama': getattr(c, 'on_uygulama', ''), 'uygulama_adi': '', 'kanal': None, 'resim': False}
+    out = {'uygulama': getattr(c, 'on_uygulama', ''), 'uygulama_adi': '', 'kanal': None}
     if c.tur in TOSHIBA_TURLERI:
         l = elle_liste(c)
         ad = getattr(c, 'simdiki_ad', lambda: '')()
@@ -2840,7 +2765,13 @@ class YouTubeBag:
         v = dict(self.video) if self.video else None
         if v:
             v['simdi'] = round(v['zaman'] + (time.time() - v['alindi']) * (1 if v['durum'] == 1 else 0), 2)
+            if v['sure']:
+                v['simdi'] = min(v['simdi'], v['sure'])
             v['yas'] = round(time.time() - v['alindi'], 1)
+            b = YT_BASLIK.get(v['id'])
+            if b is None and v['id']:
+                threading.Thread(target=youtube_baslik, args=(v['id'],), daemon=True).start()
+            v.update(b or {})
         return {'durum': self.durum, 'mesaj': self.mesaj, 'ad': self.ekran_adi, 'video': v}
 
     # — eşleşme —
@@ -2976,6 +2907,63 @@ class YouTubeBag:
             self.calisiyor = False
 
 YOUTUBE = {}
+YT_BASLIK = {}
+
+def youtube_baslik(vid):
+    """Videonun adı ve kanalı (YouTube oEmbed; anahtar gerekmez)."""
+    if vid in YT_BASLIK:
+        return YT_BASLIK[vid]
+    YT_BASLIK[vid] = {}
+    try:
+        import urllib.request, urllib.parse
+        u = 'https://www.youtube.com/oembed?format=json&url=' + urllib.parse.quote('https://www.youtube.com/watch?v=' + vid)
+        with urllib.request.urlopen(urllib.request.Request(u, headers={'User-Agent': 'Mozilla/5.0'}), timeout=8) as y:
+            d = json.loads(y.read().decode('utf-8', 'replace'))
+        YT_BASLIK[vid] = {'baslik': d.get('title', ''), 'kanal': d.get('author_name', '')}
+    except Exception:
+        YT_BASLIK.pop(vid, None)
+    return YT_BASLIK.get(vid, {})
+
+def _yt_metin(x):
+    if isinstance(x, dict):
+        return x.get('simpleText') or ''.join(r.get('text', '') for r in x.get('runs') or [])
+    return ''
+
+def youtube_ara(q, sinir=25):
+    """YouTube araması (youtube.com arama sayfasındaki veriden; anahtar gerekmez)."""
+    import urllib.request, urllib.parse
+    q = q.strip()
+    if not q:
+        return []
+    u = 'https://www.youtube.com/results?hl=tr&gl=TR&search_query=' + urllib.parse.quote(q)
+    istek = urllib.request.Request(u, headers={'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36',
+                                              'Accept-Language': 'tr-TR,tr;q=0.9'})
+    with urllib.request.urlopen(istek, timeout=12) as y:
+        h = y.read(6 * 1024 * 1024).decode('utf-8', 'replace')
+    m = re.search(r'(?:var ytInitialData|window\["ytInitialData"\])\s*=\s*(\{.+?\});\s*</script>', h, re.S)
+    if not m:
+        raise ValueError('arama sonucu okunamadı')
+    veri = json.loads(m.group(1))
+    out, gor = [], set()
+    def gez(o):
+        if len(out) >= sinir:
+            return
+        if isinstance(o, dict):
+            vr = o.get('videoRenderer') or o.get('compactVideoRenderer') or o.get('videoWithContextRenderer')
+            if isinstance(vr, dict) and vr.get('videoId') and vr['videoId'] not in gor:
+                gor.add(vr['videoId'])
+                out.append({'id': vr['videoId'], 'baslik': _yt_metin(vr.get('title') or vr.get('headline')),
+                            'kanal': _yt_metin(vr.get('ownerText') or vr.get('longBylineText') or vr.get('shortBylineText')),
+                            'sure': _yt_metin(vr.get('lengthText')), 'izlenme': _yt_metin(vr.get('shortViewCountText') or vr.get('viewCountText')),
+                            'zaman': _yt_metin(vr.get('publishedTimeText'))})
+                return
+            for v in o.values():
+                gez(v)
+        elif isinstance(o, list):
+            for v in o:
+                gez(v)
+    gez(veri)
+    return out
 
 def youtube_bag(c):
     b = YOUTUBE.get(c.id)
@@ -3360,7 +3348,7 @@ class H(BaseHTTPRequestHandler):
                 ozetler.append(o)
             liste = AYAR.get('cihazlar') or []
             ilk = lambda t: next((k for k in liste if k.get('tur') == t), {})
-            d = {'surum': 13, 'bildirimler': BILDIRIMLER[-3:], 'adb': ADB_VAR, 'cihazlar': ozetler,
+            d = {'surum': 14, 'bildirimler': BILDIRIMLER[-3:], 'adb': ADB_VAR, 'cihazlar': ozetler,
                  # eski kumanda sayfası için
                  'ayar': {'projeksiyon': ilk('adb').get('adres', ''), 'tv': ilk('lg').get('adres', ''),
                           'mac': ilk('lg').get('mac') or ''}}
@@ -3427,61 +3415,23 @@ class H(BaseHTTPRequestHandler):
                 self.wfile.write(veri)
             else:
                 self.yanit(404, {})
-        elif yol.path == '/ekran':
-            c = CIHAZLAR.get(q.get('c'))
-            if c is None or c.tur == 'adb' or c.durum != 'bagli':
-                self.yanit(200, {'bagli': False})
-            else:
-                d = ekran_bilgisi(c)
-                d['bagli'] = True
-                app = (d.get('uygulama') or '').lower()
-                yb = youtube_bag(c)
-                d['youtube_eslesik'] = bool(yb.ekran_id)
-                v = yb.ozet()['video'] if yb.durum == 'bagli' else None
-                if v and v.get('id') and v['durum'] in (1, 2, 3, 0) and ('youtube' in app or not app or c.tur != 'lg'):
-                    # TV'deki YouTube'un kendisinden: hangi video, kaçıncı saniye, oynuyor mu
-                    d['youtube'] = {'id': v['id'], 'simdi': v['simdi'], 'durum': v['durum'], 'canli': True}
-                else:
-                    # Kumandadan TV'ye gönderilen YouTube videosu hâlâ açıksa: telefonda da aynı yerden izlenebilsin
-                    y = getattr(c, 'son_youtube', None)
-                    if y and time.time() - y['zaman'] < 4 * 3600 and ('youtube' in app or (not app and not d.get('kanal'))):
-                        d['youtube'] = {'id': y['id'], 'gecen': int(time.time() - y['zaman'])}
-                    if 'youtube' in app and not yb.ekran_id and not getattr(yb, 'dial_denendi', False):
-                        yb.dial_denendi = True              # YouTube açıkken TV kendiliğinden eşleşmeyi verebilir
-                        threading.Thread(target=yb.dial_ile, daemon=True).start()
-                self.yanit(200, d)
         elif yol.path == '/youtube':
             c = CIHAZLAR.get(q.get('c'))
             if c is None or c.tur == 'adb':
                 self.yanit(200, {'durum': 'yok'})
             else:
-                o = youtube_bag(c).ozet()
-                o['eslesik'] = bool(youtube_bag(c).ekran_id)
+                yb = youtube_bag(c)
+                if not yb.ekran_id and c.durum == 'bagli' and time.time() - getattr(yb, 'dial_zaman', 0) > 60:
+                    yb.dial_zaman = time.time()          # TV'deki YouTube açıksa kendiliğinden eşleşmeyi dene
+                    threading.Thread(target=yb.dial_ile, daemon=True).start()
+                o = yb.ozet()
+                o['eslesik'] = bool(yb.ekran_id)
                 self.yanit(200, o)
-        elif yol.path == '/ekran_resim':
-            c = CIHAZLAR.get(q.get('c'))
+        elif yol.path == '/youtube_ara':
             try:
-                onceki = int(q.get('onceki') or 0)
-            except ValueError:
-                onceki = 0
-            k = c.kare_al(onceki) if isinstance(c, LGTV) and c.durum == 'bagli' else None
-            veri, tur = (k[1], k[2]) if k else (None, None)
-            if veri:
-                self.send_response(200)
-                self.cors()
-                self.send_header('Access-Control-Expose-Headers', 'X-Kare, X-Hiz')
-                self.send_header('X-Kare', str(k[0]))
-                self.send_header('X-Hiz', str(k[3]))
-                self.send_header('Content-Type', tur)
-                self.send_header('Cache-Control', 'no-store')
-                self.send_header('Content-Length', str(len(veri)))
-                self.end_headers()
-                try:
-                    self.wfile.write(veri)
-                except (BrokenPipeError, ConnectionResetError):
-                    pass      # kumanda sayfası kapandı ya da başka moda geçti
-            else:
-                self.yanit(404, {'yakalama': getattr(c, 'yakalama', None)})
+                self.yanit(200, {'sonuclar': youtube_ara(q.get('q', '')[:100])})
+            except Exception as e:
+                self.yanit(200, {'sonuclar': [], 'hata': 'YouTube araması yapılamadı (internet bağlantısı?): %s' % e})
         elif yol.path == '/simdiki':
             c = CIHAZLAR.get(q.get('c'))
             s = ''
@@ -3552,6 +3502,34 @@ class H(BaseHTTPRequestHandler):
             elif self.path == '/youtube_bagla':
                 yb = youtube_bag(c)
                 ok, neden = yb.kod_ile(v['kod']) if v.get('kod') else yb.dial_ile()
+            elif self.path == '/youtube_komut':
+                yb = youtube_bag(c)
+                k = v.get('komut', '')
+                if yb.durum != 'bagli':
+                    ok, neden = False, 'Önce TV\'deki YouTube\'u kumandaya bağla'
+                elif k == 'sar':
+                    ok = yb.komut('seekTo', newTime='%.1f' % sayi(v, 't', 0, 0, 86400))
+                    if ok and yb.video:
+                        yb.video.update(zaman=sayi(v, 't', 0, 0, 86400), alindi=time.time())
+                else:
+                    ad = {'oynat': 'play', 'duraklat': 'pause', 'sonraki': 'next', 'onceki': 'previous'}.get(k)
+                    ok = bool(ad) and yb.komut(ad)
+                    if ok and yb.video and k in ('oynat', 'duraklat'):
+                        yb.video.update(zaman=yb.ozet()['video']['simdi'], durum=1 if k == 'oynat' else 2, alindi=time.time())
+                if not ok and not neden:
+                    neden = 'TV\'deki YouTube komutu almadı'
+            elif self.path == '/youtube_oynat':
+                vid = v.get('id', '')
+                if not re.match(r'^[A-Za-z0-9_-]{6,20}$', vid):
+                    ok, neden = False, 'Geçersiz video'
+                else:
+                    yb = youtube_bag(c)
+                    if yb.durum == 'bagli':
+                        ok = yb.komut('addVideo', videoId=vid, videoSources='XX') if v.get('sira') == '1' else yb.komut('setPlaylist', videoId=vid)
+                    elif v.get('sira') == '1':
+                        ok, neden = False, 'Sıraya eklemek için TV\'deki YouTube\'u kumandaya bağla'
+                    else:
+                        ok = c.adres_ac('https://www.youtube.com/watch?v=' + vid)   # bağlı değilse TV'de bağlantıyla aç
             elif self.path == '/youtube_unut':
                 youtube_bag(c).unut()
                 ok = True
@@ -3559,17 +3537,13 @@ class H(BaseHTTPRequestHandler):
                 ok, neden = c.kod_gir(v.get('kod', '')) if toshiba else (False, 'Bu cihaz kodla eşleşmiyor')
             elif self.path == '/uygulama':
                 ok = c.uygulama(v.get('id', ''))
-                c.son_youtube = None
             elif self.path == '/ac':
                 url = v.get('url') or CANLI_TV_URL
                 ok = c.adres_ac(url) if url.startswith(('http://', 'https://')) else False
-                vid = youtube_kimligi(url) if ok else None
-                c.son_youtube = {'id': vid, 'zaman': time.time()} if vid else None
             elif self.path == '/giris' and hasattr(c, 'giris_sec'):
                 ok = c.giris_sec(v.get('id', ''))
             elif self.path == '/kanal' and isinstance(c, LGTV):
                 ok = c.kanal_ac(v.get('id', ''))
-                c.son_youtube = None
             elif self.path == '/kanal' and toshiba:
                 ok = elle_kanal_ac(c, v.get('id', ''))
                 if not ok:
