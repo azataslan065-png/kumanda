@@ -1186,7 +1186,8 @@ function ytCiz(){
   const t=ytKonum(v), cb=$('#ytCubuk');
   cb.max=Math.max(1,Math.round(v.sure||0)); if(!yt.suruyor) cb.value=Math.round(t);
   $('#ytZaman').textContent=dk(yt.suruyor?+cb.value:t); $('#ytSure').textContent=v.sure?dk(v.sure):'canlı';
-  $('#ytOynat').textContent = v.durum===1 ? '⏸' : '▶';
+  const yeni = v.durum===1 ? 'dur' : 'oyn'; if($('#ytOynat').dataset.d!==yeni){ $('#ytOynat').dataset.d=yeni;
+    $('#ytOynat').innerHTML = yeni==='dur' ? '<svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M7 4l12 8-12 8z" fill="currentColor"/></svg>'; }
 }
 async function ytSor(){
   clearTimeout(yt.z); const c=aktif();
