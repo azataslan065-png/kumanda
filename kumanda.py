@@ -17,7 +17,9 @@ from urllib.parse import parse_qs, urlparse
 
 PORT = 8080
 AYAR_DOSYASI = os.path.expanduser('~/.kumanda.json')
-SAYFA_DOSYASI = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'index.html')
+# Uygulamanın (APK) içinde çalışırken sayfa dosyaları KUMANDA_SITE klasöründedir
+SAYFA_DOSYASI = os.path.join(os.environ.get('KUMANDA_SITE') or os.path.dirname(os.path.abspath(__file__)), 'index.html')
+ANDROID = None   # APK içinde: telefon bildirimi gösteren Java nesnesi (bildir(baslik, metin))
 CANLI_TV_URL = 'https://azataslan065-png.github.io/kumanda/tv/'
 
 # ───────────────────────── ayarlar ─────────────────────────
@@ -1185,6 +1187,12 @@ TERMUX_BILDIRIM = None
 
 def _telefon_bildirimi(baslik, metin, hid):
     global TERMUX_BILDIRIM
+    if ANDROID is not None:
+        try:
+            ANDROID.bildir(baslik, metin)
+            return True
+        except Exception:
+            return False
     if TERMUX_BILDIRIM is None:
         import shutil
         TERMUX_BILDIRIM = bool(shutil.which('termux-notification'))
@@ -3348,7 +3356,7 @@ class H(BaseHTTPRequestHandler):
                 ozetler.append(o)
             liste = AYAR.get('cihazlar') or []
             ilk = lambda t: next((k for k in liste if k.get('tur') == t), {})
-            d = {'surum': 14, 'bildirimler': BILDIRIMLER[-3:], 'adb': ADB_VAR, 'cihazlar': ozetler,
+            d = {'surum': 15, 'uygulama': ANDROID is not None, 'bildirimler': BILDIRIMLER[-3:], 'adb': ADB_VAR, 'cihazlar': ozetler,
                  # eski kumanda sayfası için
                  'ayar': {'projeksiyon': ilk('adb').get('adres', ''), 'tv': ilk('lg').get('adres', ''),
                           'mac': ilk('lg').get('mac') or ''}}
@@ -3368,7 +3376,7 @@ class H(BaseHTTPRequestHandler):
         elif yol.path == '/hatirlatmalar':
             import shutil
             self.yanit(200, {'liste': hatirlatmalar(), 'bildirimler': BILDIRIMLER[-10:],
-                             'telefon': bool(shutil.which('termux-notification')), 'once': HATIRLATMA_ONCE})
+                             'telefon': ANDROID is not None or bool(shutil.which('termux-notification')), 'once': HATIRLATMA_ONCE})
         elif yol.path == '/izleme':
             self.yanit(200, izleme_ozeti())
         elif yol.path == '/tara':

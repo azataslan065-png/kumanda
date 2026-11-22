@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sayfa, uygulamanın içindeki köprüden (http://127.0.0.1:8080) açılır; TV'lerle yerel ağda http konuşulur -->
+<network-security-config>
+  <base-config cleartextTrafficPermitted="true"/>
+</network-security-config>

@@ -1,0 +1,41 @@
+plugins { id 'com.android.application'; id 'com.chaquo.python' }
+// Sayfa ve köprü APK'ya gömülür: kumanda telefonda Termux olmadan, kendi içindeki köprüyle çalışır.
+def SITE = ['index.html', 'manifest.webmanifest', 'sw.js', 'ikon-192.png', 'ikon-512.png', 'ikon-maskable-512.png']
+def site = file('build/site/site'); site.mkdirs()
+SITE.each { ad -> new File(site, ad).bytes = file("../../${ad}").bytes }
+def py = file('src/main/python'); py.mkdirs()
+new File(py, 'kumanda.py').bytes = file('../../kumanda.py').bytes
+def NO = (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as int
+android {
+    namespace 'com.azat.kumanda'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.azat.kumanda'
+        minSdk 26
+        targetSdk 34
+        versionCode NO
+        versionName '1.0.' + NO
+        resValue 'string', 'app_name', 'Kumanda'
+        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64' }
+    }
+    signingConfigs {
+        imza {
+            // Anahtar depoda durur: her derleme aynı imzayı taşır, yeni APK eskisinin üstüne kurulur.
+            storeFile file('../kumanda.jks')
+            storePassword 'kumanda'
+            keyAlias 'kumanda'
+            keyPassword 'kumanda'
+        }
+    }
+    buildTypes { release { minifyEnabled false; signingConfig signingConfigs.imza } }
+    buildFeatures { buildConfig true }
+    sourceSets { main.assets.srcDirs = ['build/site'] }
+    lint { checkReleaseBuilds false; abortOnError false }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+chaquopy {
+    defaultConfig {
+        version = '3.12'
+        pyc { src = false }
+    }
+}

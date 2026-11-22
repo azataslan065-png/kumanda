@@ -1,0 +1,5 @@
+plugins {
+    id 'com.android.application' version '8.7.3' apply false
+    // Chaquopy: Termux'taki köprü (kumanda.py) uygulamanın içinde, Android'in kendi Python'u olarak çalışır
+    id 'com.chaquo.python' version '16.0.0' apply false
+}

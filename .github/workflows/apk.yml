@@ -1,0 +1,33 @@
+# Kumanda APK'sı: köprü (kumanda.py) uygulamanın içinde çalışır, Termux gerekmez.
+# Sayfa, köprü ya da kabuk (android/) değişince veya elle derlenir; APK "apk" sürümüne yüklenir.
+name: APK
+on:
+  push:
+    branches: [main]
+    paths: [android/**, .github/workflows/apk.yml, index.html, kumanda.py, sw.js, manifest.webmanifest, ikon-*.png]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  derle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.14.3' }
+      - name: Derle
+        working-directory: android
+        run: gradle assembleRelease --no-daemon --console=plain
+      - name: Yayinla
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir out
+          cp android/app/build/outputs/apk/release/*.apk out/Kumanda.apk
+          ls -la out
+          gh release delete apk -y --cleanup-tag 2>/dev/null || true
+          gh release create apk out/Kumanda.apk --title "Kumanda APK (derleme $GITHUB_RUN_NUMBER)" --notes "Telefona indirip kur; yeni sürüm eskisinin üstüne kurulur. Termux gerekmez." --latest

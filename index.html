@@ -431,7 +431,7 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
     <div class="ayrac"></div>
     <div class="alan">
       <label>Köprü adresi</label><input id="sunucuGir" inputmode="url" autocomplete="off">
-      <small>Termux'taki köprü. Değiştirmen gerekmez.</small>
+      <small id="kopruAciklama">Termux'taki köprü. Değiştirmen gerekmez.</small>
     </div>
     <p class="not" id="surumYazi" style="text-align:center;margin:4px 0 10px"></p>
     <div class="satir"><button class="b" id="kapatBtn">Kapat</button></div>
@@ -534,7 +534,9 @@ function yaz(k,v){try{localStorage.setItem('kmd_'+k,v)}catch(e){}}
   try{ const b=JSON.parse(decodeURIComponent(m[1])); if(b.s&&b.k){ yaz('sunucu',b.s); yaz('anahtar',b.k); yaz('yeni_baglandi','1'); } }catch(e){}
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
-const SAYFA_SURUMU='2026-11-09-B';
+const SAYFA_SURUMU='2026-11-22-A';
+const UYGULAMA = /KumandaApp\//.test(navigator.userAgent) && !!window.KumandaApp;   // Kumanda uygulaması (köprü içinde, Termux yok)
+if(UYGULAMA) document.addEventListener('DOMContentLoaded',()=>{ const k=document.getElementById('kopruAciklama'); if(k) k.textContent='Uygulamanın içindeki köprü. Değiştirmen gerekmez.'; });
 const TV_TURLERI=['lg','androidtv','vidaa','smartcenter'], TOSHIBA=['androidtv','vidaa','smartcenter'];
 const GUNCELLE_KOMUTU='curl -L --remote-name-all https://raw.githubusercontent.com/azataslan065-png/kumanda/main/{kumanda.py,index.html,manifest.webmanifest,sw.js,ikon-192.png,ikon-512.png,ikon-maskable-512.png} && python kumanda.py';
 const YEREL_SAYFA = location.protocol==='http:' && location.port==='8080';
@@ -708,7 +710,9 @@ function arayuz(){
       u.innerHTML='Köprüye ulaşılamıyor.<br>1) Termux\'ta <code>python kumanda.py</code> açık mı, telefon evdeki Wi‑Fi\'da mı?<br>2) Chrome <b>yerel ağdaki cihazlara erişim</b> izni sorarsa <b>İzin ver</b>. Daha önce engellediysen: adres çubuğundaki simge → <b>İzinler</b> → <b>Yerel ağ</b> → <b>İzin ver</b>.<br>3) Telefonun Wi‑Fi adresi değişmiş olabilir: yerel kumanda → <b>⚙</b> → <b>GitHub sayfasını bağla</b>.'+yerel;
     } else {
       $('#durumYazi').textContent='Köprü kapalı';
-      u.className='uyari kirmizi'; u.innerHTML='Köprüye ulaşılamıyor: Termux\'taki köprü çalışmıyor.<br>1) Termux\'u aç. Komut satırı boşsa şunu yaz: <code>python kumanda.py</code><br>2) Android Termux\'u arka planda kapatmasın diye: bildirim çubuğundaki Termux bildiriminde <b>Acquire wakelock</b>\'a bas, ayrıca Ayarlar → Uygulamalar → Termux → Pil → <b>Kısıtlanmamış</b> seç.';
+      u.className='uyari kirmizi';
+      if(UYGULAMA){ u.innerHTML='Köprü yanıt vermiyor. Bildirim çubuğunda <b>Kumanda çalışıyor</b> yazmıyorsa uygulamayı kapatıp yeniden aç.'; return; }
+      u.innerHTML='Köprüye ulaşılamıyor: Termux\'taki köprü çalışmıyor. <b>Kalıcı çözüm: Kumanda uygulamasını kur</b> (Termux gerekmez, bağlantı kopmaz) — Uygulama Merkezi\'nde ya da <a style="color:#8fb4ff" href="https://github.com/azataslan065-png/kumanda/releases/download/apk/Kumanda.apk">buradan indir</a>.<br>Termux ile devam edeceksen:<br>1) Termux\'u aç. Komut satırı boşsa şunu yaz: <code>python kumanda.py</code><br>2) Android Termux\'u arka planda kapatmasın diye: bildirim çubuğundaki Termux bildiriminde <b>Acquire wakelock</b>\'a bas, ayrıca Ayarlar → Uygulamalar → Termux → Pil → <b>Kısıtlanmamış</b> seç.';
     }
     return; }
   if(kopruVar==='eski'){ $('#durumYazi').textContent='Köprü eski';
@@ -718,7 +722,7 @@ function arayuz(){
   $('#durumYazi').textContent=AD_DURUM[c.durum]||c.durum;
   if(c.durum==='bagli') d.classList.add('ok'); else if(c.durum==='baglaniyor'||c.durum==='onay'||c.durum==='kod') d.classList.add('bekle');
   if(c.durum==='onay'){ u.className='uyari sari'; u.innerHTML='<b>TV ekranına bak.</b> Çıkan izin isteğini TV\'nin kendi kumandasıyla <b>Kabul et</b>. Bu yalnızca ilk seferde sorulur.'; }
-  else if(c.tur==='adb' && !adbVar){ u.className='uyari kirmizi'; u.innerHTML='Projeksiyon için ADB gerekli. Termux\'ta: <code>pkg install android-tools</code>'; }
+  else if(c.tur==='adb' && !adbVar){ u.className='uyari kirmizi'; u.innerHTML=UYGULAMA?'Projeksiyon (ADB) uygulamada henüz desteklenmiyor; projeksiyon için şimdilik Termux\'taki köprüyü kullan.':'Projeksiyon için ADB gerekli. Termux\'ta: <code>pkg install android-tools</code>'; }
   else if(c.durum==='kod'){ /* eşleşme kutusu gösteriliyor */ }
   else if(c.durum!=='bagli' && c.mesaj){ u.className='uyari '+(c.durum==='hata'?'kirmizi':'mavi'); u.textContent=c.mesaj; }
 }
@@ -1427,7 +1431,7 @@ async function izlemeAc(){
     l.forEach(([ad,sn])=>{ const r=document.createElement('div'); const a=document.createElement('b'); a.textContent=ad; const s=document.createElement('small'); s.textContent=sureYaz(sn);
       const c=document.createElement('span'); const i=document.createElement('i'); i.style.width=(sn/m*100)+'%'; c.appendChild(i); r.append(a,s,c); L.appendChild(r); }); k.appendChild(L); };
   liste('Bugün en çok', d.bugun_en_cok); liste('Son 7 günde en çok', d.hafta_en_cok);
-  const n=document.createElement('p'); n.className='not'; n.style.marginTop='16px'; n.textContent='Köprü TV açıkken her '+d.aralik+' saniyede bir hangi kanalın ya da uygulamanın açık olduğunu kaydeder. Termux kapalıyken kayıt tutulmaz.'; k.appendChild(n);
+  const n=document.createElement('p'); n.className='not'; n.style.marginTop='16px'; n.textContent='Köprü TV açıkken her '+d.aralik+' saniyede bir hangi kanalın ya da uygulamanın açık olduğunu kaydeder. '+(UYGULAMA?'Uygulama kapatılırsa (bildirimdeki Kapat) kayıt tutulmaz.':'Termux kapalıyken kayıt tutulmaz.'); k.appendChild(n);
 }
 $('#izlemeBtn').onclick=()=>{ titre(); izlemeAc(); };
 $('#izKapat').onclick=()=>$('#izlemePerde').classList.add('gizli');
@@ -1440,7 +1444,7 @@ temaSecimCiz();
 
 // ── sesle komut (Türkçe) ──
 const Taniyici = window.SpeechRecognition || window.webkitSpeechRecognition;
-if(Taniyici) $('#sesBtn').classList.remove('gizli');
+if(Taniyici || UYGULAMA) $('#sesBtn').classList.remove('gizli');
 let dinleyen=null;
 function sesBalon(baslik, alt){ const b=$('#sesBalon'); b.innerHTML=''; const x=document.createElement('b'); x.textContent=baslik; b.appendChild(x);
   if(alt){ const s=document.createElement('small'); s.textContent=alt; b.appendChild(s); } b.classList.remove('gizli'); clearTimeout(sesBalon.z); sesBalon.z=setTimeout(()=>b.classList.add('gizli'),4500); }
@@ -1485,6 +1489,15 @@ async function komutCalistir(metin){
 $('#sesBtn').onclick=()=>{
   titre();
   if(dinleyen){ try{ dinleyen.stop(); }catch(e){} return; }
+  if(!Taniyici && UYGULAMA){   // uygulamada Android'in konuşma tanıması: sonuç window.sesSonucu ile gelir
+    window.sesSonucu=async(son,hata)=>{ $('#sesBtn').classList.remove('dinliyor');
+      if(!son){ if(hata) sesBalon(hata,'Tekrar dene'); else $('#sesBalon').classList.add('gizli'); return; }
+      sesBalon('“'+son+'”','');
+      let sonuc=null; try{ sonuc=await komutCalistir(son); }catch(e){}
+      sesBalon(sonuc?'✓ '+sonuc:'Anlamadım: “'+son+'”', sonuc?'':'Örnek: "TRT 1\'i aç", "sesi 5 aç", "kanal 7", "YouTube\'u aç"'); };
+    $('#sesBtn').classList.add('dinliyor'); sesBalon('Dinliyorum…','Örnek: "TRT 1\'i aç", "sesi kıs", "Galatasaray maçı ne zaman"');
+    try{ window.KumandaApp.dinle(); }catch(e){ $('#sesBtn').classList.remove('dinliyor'); }
+    return; }
   const r=new Taniyici(); r.lang='tr-TR'; r.interimResults=true; r.maxAlternatives=3; dinleyen=r;
   $('#sesBtn').classList.add('dinliyor'); sesBalon('Dinliyorum…','Örnek: "TRT 1\'i aç", "sesi kıs", "Galatasaray maçı ne zaman"');
   let son='';
