@@ -9,16 +9,25 @@ new File(py, 'kumanda.py').bytes = file('../../kumanda.py').bytes
 // böylece hangisi daha yeniyse diğerinin üstüne kurulabilir.
 def NO = (int) (System.currentTimeMillis().intdiv(60000) - 29000000L)
 def TEST = System.getenv('KUMANDA_TEST') == '1'
+if (TEST) {   // test kaynakları: ana kaynaklar + TEST şeritli simgeler (src/testapp/res) üstüne
+    def hedef = file('build/res-test'); delete hedef
+    copy { from 'src/main/res'; into hedef }
+    copy { from 'src/testapp/res'; into hedef }
+}
 android {
     namespace 'com.azat.kumanda'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.azat.kumanda'
+        // Test ayrı bir uygulamadır (Kumanda Test, com.azat.kumanda.test): kararlı Kumanda'yla yan yana kurulur,
+        // kendi köprüsü (8081), kendi ayarları ve kendi simgesi (TEST şeritli) vardır.
+        applicationId TEST ? 'com.azat.kumanda.test' : 'com.azat.kumanda'
         minSdk 26
         targetSdk 34
         versionCode NO
         versionName (TEST ? '1.1.' + NO + '-test' : '1.1.' + NO)
-        resValue 'string', 'app_name', 'Kumanda'
+        resValue 'string', 'app_name', TEST ? 'Kumanda Test' : 'Kumanda'
+        buildConfigField 'int', 'PORT', TEST ? '8081' : '8080'
+        buildConfigField 'boolean', 'TEST', TEST ? 'true' : 'false'
         ndk { abiFilters 'arm64-v8a', 'x86_64' }   // Python 3.12 yalnızca 64 bit
     }
     signingConfigs {
@@ -32,7 +41,10 @@ android {
     }
     buildTypes { release { minifyEnabled false; signingConfig signingConfigs.imza } }
     buildFeatures { buildConfig true }
-    sourceSets { main.assets.srcDirs = ['build/site'] }
+    sourceSets {
+        main.assets.srcDirs = ['build/site']
+        main.res.srcDirs = [TEST ? 'build/res-test' : 'src/main/res']
+    }
     lint { checkReleaseBuilds false; abortOnError false }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }

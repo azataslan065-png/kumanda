@@ -35,7 +35,7 @@ import java.util.ArrayList;
  * Sayfa köprünün kendi adresinden (http://127.0.0.1:8080) açılır; sesle komut Android'in konuşma tanımasıyla yapılır.
  */
 public class Ana extends Activity {
-    static final String ADRES = "http://127.0.0.1:8080/";
+    static final String ADRES = "http://127.0.0.1:" + BuildConfig.PORT + "/";
     private static final int SES = 21, BILDIRIM_IZNI = 22;
     private WebView w;
     private TextView yukleniyor;
@@ -66,7 +66,7 @@ public class Ana extends Activity {
         s.setSupportZoom(false);
         s.setBuiltInZoomControls(false);
         s.setDisplayZoomControls(false);
-        s.setUserAgentString(s.getUserAgentString() + " KumandaApp/" + BuildConfig.VERSION_CODE);
+        s.setUserAgentString(s.getUserAgentString() + " KumandaApp/" + BuildConfig.VERSION_CODE + (BuildConfig.TEST ? " KumandaTest/1" : ""));
         w.setOverScrollMode(View.OVER_SCROLL_NEVER);
         w.addJavascriptInterface(new Kopruk(), "KumandaApp");
         w.setWebViewClient(new WebViewClient() {
@@ -91,7 +91,7 @@ public class Ana extends Activity {
         new Thread(() -> {
             long son = System.currentTimeMillis() + 40000;
             while (System.currentTimeMillis() < son) {
-                try (Socket k = new Socket()) { k.connect(new InetSocketAddress("127.0.0.1", 8080), 500); break; }
+                try (Socket k = new Socket()) { k.connect(new InetSocketAddress("127.0.0.1", BuildConfig.PORT), 500); break; }
                 catch (Exception e) {
                     if (!Kopru.calisiyor && Kopru.hata != null) break;
                     try { Thread.sleep(300); } catch (InterruptedException ignored) { }

@@ -15,7 +15,7 @@ import concurrent.futures
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
-PORT = 8080
+PORT = int(os.environ.get('KUMANDA_PORT') or 8080)   # Kumanda Test uygulaması 8081 kullanır (ikisi aynı anda çalışabilsin)
 AYAR_DOSYASI = os.path.expanduser('~/.kumanda.json')
 # Uygulamanın (APK) içinde çalışırken sayfa dosyaları KUMANDA_SITE klasöründedir
 SAYFA_DOSYASI = os.path.join(os.environ.get('KUMANDA_SITE') or os.path.dirname(os.path.abspath(__file__)), 'index.html')

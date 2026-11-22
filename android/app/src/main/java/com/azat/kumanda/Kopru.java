@@ -57,7 +57,7 @@ public class Kopru extends Service {
         if (Build.VERSION.SDK_INT >= 29) startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
         else startForeground(1, n);
         try {   // ağdaki TV'leri bulmak için (SSDP) çok noktaya yayın paketlerini almak gerekir
-            ml = ((WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE)).createMulticastLock("kumanda");
+            ml = ((WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE)).createMulticastLock(getPackageName());
             ml.setReferenceCounted(false);
             ml.acquire();
         } catch (Exception ignored) { }
@@ -68,7 +68,7 @@ public class Kopru extends Service {
         PendingIntent kapat = PendingIntent.getService(this, 1, new Intent(this, Kopru.class).setAction(KAPAT), PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, KANAL) : new Notification.Builder(this);
         return b.setSmallIcon(R.drawable.bildirim)
-            .setContentTitle("Kumanda çalışıyor")
+            .setContentTitle(BuildConfig.TEST ? "Kumanda Test çalışıyor" : "Kumanda çalışıyor")
             .setContentText("TV'lerle bağlantı açık, hatırlatmalar zamanında gelir")
             .setContentIntent(ac)
             .setOngoing(true)
@@ -97,7 +97,7 @@ public class Kopru extends Service {
             if (!Python.isStarted()) Python.start(new AndroidPlatform(this));
             hazir = true;
             Python.getInstance().getModule("android_kopru").callAttr("baslat",
-                getFilesDir().getAbsolutePath(), site.getAbsolutePath(), new Bildirici(this));
+                getFilesDir().getAbsolutePath(), site.getAbsolutePath(), new Bildirici(this), BuildConfig.PORT);
             hata = "Köprü durdu";
         } catch (Throwable t) {
             hata = String.valueOf(t);

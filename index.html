@@ -534,12 +534,22 @@ function yaz(k,v){try{localStorage.setItem('kmd_'+k,v)}catch(e){}}
   try{ const b=JSON.parse(decodeURIComponent(m[1])); if(b.s&&b.k){ yaz('sunucu',b.s); yaz('anahtar',b.k); yaz('yeni_baglandi','1'); } }catch(e){}
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
-const SAYFA_SURUMU='2026-11-22-B';
+const SAYFA_SURUMU='2026-11-22-C';
 const UYGULAMA = /KumandaApp\//.test(navigator.userAgent) && !!window.KumandaApp;   // Kumanda uygulaması (köprü içinde, Termux yok)
+// Kumanda Test: kararlı Kumanda'dan ayrı uygulama. Hangisinde olduğun karışmasın diye en üstte sabit, çizgili TEST şeridi (Puan Tablosu testindeki gibi).
+const TEST_UYGULAMA = UYGULAMA && /KumandaTest\//.test(navigator.userAgent);
+if(TEST_UYGULAMA) document.addEventListener('DOMContentLoaded',()=>{
+  const b=document.createElement('div'); b.id='testBandi'; b.textContent='TEST SÜRÜMÜ · Kumanda Test';
+  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:2147483647;background:repeating-linear-gradient(45deg,#f59e0b,#f59e0b 12px,#b45309 12px,#b45309 24px);'
+    +'color:#fff;font:800 11px/1.2 sans-serif;text-align:center;padding:calc(3px + env(safe-area-inset-top)) 6px 3px;letter-spacing:.04em;text-shadow:0 1px 2px rgba(0,0,0,.55);pointer-events:none';
+  document.body.appendChild(b);
+  const yer=()=>{ document.body.style.paddingTop=(b.offsetHeight||18)+'px'; };   // içerik şeridin altında kalmasın
+  yer(); addEventListener('resize',yer);
+});
 if(UYGULAMA) document.addEventListener('DOMContentLoaded',()=>{ const k=document.getElementById('kopruAciklama'); if(k) k.textContent='Uygulamanın içindeki köprü. Değiştirmen gerekmez.'; });
 const TV_TURLERI=['lg','androidtv','vidaa','smartcenter'], TOSHIBA=['androidtv','vidaa','smartcenter'];
 const GUNCELLE_KOMUTU='curl -L --remote-name-all https://raw.githubusercontent.com/azataslan065-png/kumanda/main/{kumanda.py,index.html,manifest.webmanifest,sw.js,ikon-192.png,ikon-512.png,ikon-maskable-512.png} && python kumanda.py';
-const YEREL_SAYFA = location.protocol==='http:' && location.port==='8080';
+const YEREL_SAYFA = location.protocol==='http:' && (location.port==='8080' || UYGULAMA);
 let SUNUCU = YEREL_SAYFA ? location.origin
   : (oku('sunucu',null) || (()=>{try{return localStorage.getItem('hy350_sunucu')}catch(e){return null}})() || 'http://127.0.0.1:8080');
 const ANAHTAR = YEREL_SAYFA ? '' : oku('anahtar','');
