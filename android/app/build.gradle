@@ -5,7 +5,10 @@ def site = file('build/site/site'); site.mkdirs()
 SITE.each { ad -> new File(site, ad).bytes = file("../../${ad}").bytes }
 def py = file('src/main/python'); py.mkdirs()
 new File(py, 'kumanda.py').bytes = file('../../kumanda.py').bytes
-def NO = (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as int
+// Sürüm kodu: dakika cinsinden derleme zamanı. Kararlı ("apk") ve test ("test") derlemeleri aynı sırayı paylaşır,
+// böylece hangisi daha yeniyse diğerinin üstüne kurulabilir.
+def NO = (int) (System.currentTimeMillis().intdiv(60000) - 29000000L)
+def TEST = System.getenv('KUMANDA_TEST') == '1'
 android {
     namespace 'com.azat.kumanda'
     compileSdk 35
@@ -14,7 +17,7 @@ android {
         minSdk 26
         targetSdk 34
         versionCode NO
-        versionName '1.0.' + NO
+        versionName (TEST ? '1.1.' + NO + '-test' : '1.1.' + NO)
         resValue 'string', 'app_name', 'Kumanda'
         ndk { abiFilters 'arm64-v8a', 'x86_64' }   // Python 3.12 yalnızca 64 bit
     }

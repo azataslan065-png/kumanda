@@ -2,11 +2,9 @@ package com.azat.kumanda;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ActivityNotFoundException;
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
@@ -21,28 +19,55 @@ import java.util.Iterator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/* UYGULAMA MERKEZİ ÜZERİNDEN GÜNCELLEME (2026-11-21, kullanıcı: "güncelleme geldiğinde kullanıcı uygulama içinde güncellemeyi
-   kuramayacak; çıkan güncelleme ekranıyla mağazaya yönlendirilecek, güncelleme sadece uygulama mağazasında gerçekleştirilecek").
-   ac(): Uygulama Merkezi uygulamasında bu uygulamanın sayfasını açar (uygulamamerkezi://paket/<paket>); mağaza uygulaması kurulu
-   değilse aynı sayfa tarayıcıda açılır (oradan mağaza uygulaması indirilebilir).
-   denetle(): mağazanın sürüm dosyasında bu uygulama varsa, GitHub'daki APK'nın yüklenme zamanı telefondaki kurulumdan yeniyse
-   "Güncelleme var" penceresi gösterir. Uygulama içinde indirme/kurma YOKTUR. */
+/* ZORUNLU GÜNCELLEME — YALNIZCA UYGULAMA MERKEZİ ÜZERİNDEN (2026-11-22, kullanıcı: "Zorunlu güncelleme sadece Uygulama Merkezi
+   üzerinden yapılıyor ... Uygulama Merkezi ilgili cihazda yoksa güncelleme indirilemez, bu nedenle ilgili uyarıyı versin").
+   denetle(): mağazanın sürüm dosyasında bu uygulama varsa ve GitHub'daki APK telefondaki kurulumdan yeniyse kapatılamayan
+   "Güncelleme gerekli" penceresi çıkar; uygulama güncellenmeden kullanılamaz. "Sonra" yoktur.
+   - Uygulama Merkezi kuruluysa: "Uygulama Merkezi'nde güncelle" → mağazada bu uygulamanın sayfası (uygulamamerkezi://paket/<paket>).
+   - Kurulu değilse: "Uygulama Merkezi bu cihazda kurulu değil" uyarısı + "Uygulama Merkezi'ni indir".
+   Uygulama içinde indirme/kurma YOKTUR. İnternet yoksa ya da mağazaya ulaşılamazsa uygulama engellenmez.
+   Her onResume'da çağrılır: mağazadan dönünce güncelleme yapılmadıysa pencere yeniden çıkar. */
 final class Magaza {
     static final String SITE = "https://azataslan065-png.github.io/uygulama-merkezi/";
+    static final String MAGAZA_PAKET = "com.azat.uygulamamerkezi";
+    static final String MAGAZA_APK = "https://github.com/azataslan065-png/uygulama-merkezi/releases/download/apk/Uygulama-Merkezi.apk";
     private static long son;
     private static boolean acik;
+    private static String bekleyen;      // gerekli güncellemenin açıklaması (bulunduysa); güncelleme kurulunca süreç yeniden başlar, sıfırlanır
+    private static AlertDialog pencere;
+    private static boolean pencereKurulu;
 
+    static boolean magazaKurulu(Activity a) {
+        try { a.getPackageManager().getPackageInfo(MAGAZA_PAKET, 0); return true; } catch (PackageManager.NameNotFoundException e) { }
+        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("uygulamamerkezi://paket/" + a.getPackageName()));
+        return i.resolveActivity(a.getPackageManager()) != null;
+    }
+
+    /* Mağazada bu uygulamanın sayfası. Uygulama Merkezi kurulu değilse güncelleme indirilemez: uyarı + "Uygulama Merkezi'ni indir". */
     static void ac(Activity a) {
-        String pk = a.getPackageName();
-        try { a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("uygulamamerkezi://paket/" + pk)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
-        catch (ActivityNotFoundException e) {
-            try { a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(SITE + "#/paket/" + pk)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { }
-        }
+        if (!magazaKurulu(a)) { kuruluDegil(a); return; }
+        try { a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("uygulamamerkezi://paket/" + a.getPackageName())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); }
+        catch (Exception e) { kuruluDegil(a); }
+    }
+
+    static void kuruluDegil(final Activity a) {
+        if (a.isFinishing()) return;
+        new AlertDialog.Builder(a, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("Uygulama Merkezi kurulu değil")
+            .setMessage("Güncelleme yalnızca Uygulama Merkezi'nden indirilir ve bu cihazda Uygulama Merkezi kurulu değil. Önce Uygulama Merkezi'ni kur, sonra bu uygulamayı oradan güncelle.")
+            .setPositiveButton("Uygulama Merkezi'ni indir", (d, w) -> magazayiIndir(a))
+            .setNegativeButton("Tamam", null)
+            .show();
+    }
+
+    static void magazayiIndir(Activity a) {
+        try { a.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(MAGAZA_APK)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); } catch (Exception ignored) { }
     }
 
     static void denetle(final Activity a) {
+        if (bekleyen != null) { goster(a); return; }
         long t = System.currentTimeMillis();
-        if (acik || t - son < 30L * 60 * 1000) return;
+        if (t - son < 5L * 60 * 1000) return;
         son = t;
         final Handler h = new Handler(Looper.getMainLooper());
         new Thread(() -> {
@@ -55,31 +80,46 @@ final class Magaza {
                 long apk = ben.optLong("apkMs", 0);
                 Matcher m = Pattern.compile("github\\.com/([^/]+)/([^/]+)/releases/download/([^/]+)/([^/?#]+)").matcher(ben.optString("url"));
                 if (m.find()) {                                                // GitHub'daki gerçek APK zamanı (mağaza da buna bakar)
-                    JSONObject r = new JSONObject(oku("https://api.github.com/repos/" + m.group(1) + "/" + m.group(2) + "/releases/tags/" + m.group(3)));
-                    for (int i = 0; r.optJSONArray("assets") != null && i < r.optJSONArray("assets").length(); i++) {
-                        JSONObject as = r.optJSONArray("assets").optJSONObject(i);
-                        if (as != null && Uri.decode(m.group(4)).equals(as.optString("name"))) { long z = iso(as.optString("updated_at")); if (z > 0) apk = z; }
-                    }
+                    try {
+                        JSONObject r = new JSONObject(oku("https://api.github.com/repos/" + m.group(1) + "/" + m.group(2) + "/releases/tags/" + m.group(3)));
+                        for (int i = 0; r.optJSONArray("assets") != null && i < r.optJSONArray("assets").length(); i++) {
+                            JSONObject as = r.optJSONArray("assets").optJSONObject(i);
+                            if (as != null && Uri.decode(m.group(4)).equals(as.optString("name"))) { long z = iso(as.optString("updated_at")); if (z > 0) apk = z; }
+                        }
+                    } catch (Exception ignored) { }                            // GitHub sınırı: mağazanın kaydettiği zamanla devam
                 }
                 PackageInfo pi = a.getPackageManager().getPackageInfo(a.getPackageName(), 0);
                 if (apk <= 0 || pi.lastUpdateTime >= apk - 120000) return;     // güncel
-                final SharedPreferences sp = a.getSharedPreferences("magaza", Context.MODE_PRIVATE);
-                final String anahtar = "sonra" + apk;
-                if (System.currentTimeMillis() < sp.getLong(anahtar, 0)) return;
-                final String ad = ben.optString("name", ""), v = ben.optString("version", "");
-                h.post(() -> {
-                    if (a.isFinishing() || acik) return;
-                    acik = true;
-                    new AlertDialog.Builder(a, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                        .setTitle("Güncelleme var")
-                        .setMessage((ad.isEmpty() ? "Bu uygulamanın" : ad) + (v.isEmpty() ? "" : " v" + v) + " yeni sürümü Uygulama Merkezi'nde hazır.\n\nGüncelleme yalnızca Uygulama Merkezi'nden yapılır.")
-                        .setPositiveButton("Mağazada güncelle", (d, w) -> ac(a))
-                        .setNegativeButton("Sonra", (d, w) -> sp.edit().putLong(anahtar, System.currentTimeMillis() + 24L * 60 * 60 * 1000).apply())
-                        .setOnDismissListener(d -> acik = false)
-                        .show();
-                });
+                String ad = ben.optString("name", ""), v = ben.optString("version", "");
+                bekleyen = (ad.isEmpty() ? "Bu uygulamanın" : ad) + (v.isEmpty() ? " yeni sürümü" : " v" + v);
+                h.post(() -> goster(a));
             } catch (Exception ignored) { }
         }).start();
+    }
+
+    private static void goster(final Activity a) {
+        if (a.isFinishing() || bekleyen == null) return;
+        final boolean kurulu = magazaKurulu(a);
+        if (acik && pencere != null && pencere.isShowing()) {
+            if (kurulu == pencereKurulu) return;
+            try { pencere.setOnDismissListener(null); pencere.dismiss(); } catch (Exception ignored) { }   // bu arada Uygulama Merkezi kuruldu: pencere ona göre yenilenir
+        }
+        pencereKurulu = kurulu;
+        AlertDialog.Builder b = new AlertDialog.Builder(a, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("Güncelleme gerekli")
+            .setCancelable(false);
+        if (kurulu) {
+            b.setMessage(bekleyen + " çıktı. Devam etmek için güncellemen gerekiyor.\n\nGüncelleme yalnızca Uygulama Merkezi'nden yapılır.")
+             .setPositiveButton("Uygulama Merkezi'nde güncelle", null);
+        } else {
+            b.setMessage(bekleyen + " çıktı. Devam etmek için güncellemen gerekiyor.\n\nUygulama Merkezi bu cihazda kurulu değil, bu yüzden güncelleme indirilemez. Önce Uygulama Merkezi'ni kur, sonra bu uygulamayı oradan güncelle.")
+             .setPositiveButton("Uygulama Merkezi'ni indir", null);
+        }
+        b.setOnDismissListener(d -> acik = false);
+        acik = true;
+        pencere = b.show();
+        // düğmeye basınca pencere kapanmaz: mağazadan güncellemeden dönülürse uygulama yine kullanılamaz
+        pencere.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> { if (kurulu) ac(a); else magazayiIndir(a); });
     }
 
     private static long iso(String s) {

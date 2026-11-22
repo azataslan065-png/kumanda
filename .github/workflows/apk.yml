@@ -1,9 +1,11 @@
 # Kumanda APK'sı: köprü (kumanda.py) uygulamanın içinde çalışır, Termux gerekmez.
-# Sayfa, köprü ya da kabuk (android/) değişince veya elle derlenir; APK "apk" sürümüne yüklenir.
+# Sayfa, köprü ya da kabuk (android/) değişince veya elle derlenir.
+# main dalı → kararlı sürüm ("apk" etiketi, Kumanda.apk). test dalı → test sürümü ("test" etiketi, ön sürüm, Kumanda-Test.apk);
+# test sürümü Uygulama Merkezi'nde yalnızca testçilere gösterilir.
 name: APK
 on:
   push:
-    branches: [main]
+    branches: [main, test]
     paths: [android/**, .github/workflows/apk.yml, index.html, kumanda.py, sw.js, manifest.webmanifest, ikon-*.png]
   workflow_dispatch:
 permissions:
@@ -21,13 +23,21 @@ jobs:
         with: { gradle-version: '8.14.3' }
       - name: Derle
         working-directory: android
+        env:
+          KUMANDA_TEST: ${{ github.ref_name == 'test' && '1' || '0' }}
         run: gradle assembleRelease --no-daemon --console=plain
       - name: Yayinla
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir out
-          cp android/app/build/outputs/apk/release/*.apk out/Kumanda.apk
+          if [ "$GITHUB_REF_NAME" = test ]; then
+            cp android/app/build/outputs/apk/release/*.apk out/Kumanda-Test.apk
+            gh release delete test -y --cleanup-tag 2>/dev/null || true
+            gh release create test out/Kumanda-Test.apk --target "$GITHUB_SHA" --prerelease --title "Kumanda TEST (derleme $GITHUB_RUN_NUMBER)" --notes "Test sürümü: Uygulama Merkezi'nde yalnızca testçilere görünür. Kararlı sürümün üstüne kurulur."
+          else
+            cp android/app/build/outputs/apk/release/*.apk out/Kumanda.apk
+            gh release delete apk -y --cleanup-tag 2>/dev/null || true
+            gh release create apk out/Kumanda.apk --target "$GITHUB_SHA" --title "Kumanda APK (derleme $GITHUB_RUN_NUMBER)" --notes "Telefona indirip kur; yeni sürüm eskisinin üstüne kurulur. Termux gerekmez." --latest
+          fi
           ls -la out
-          gh release delete apk -y --cleanup-tag 2>/dev/null || true
-          gh release create apk out/Kumanda.apk --title "Kumanda APK (derleme $GITHUB_RUN_NUMBER)" --notes "Telefona indirip kur; yeni sürüm eskisinin üstüne kurulur. Termux gerekmez." --latest

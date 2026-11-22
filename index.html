@@ -534,7 +534,7 @@ function yaz(k,v){try{localStorage.setItem('kmd_'+k,v)}catch(e){}}
   try{ const b=JSON.parse(decodeURIComponent(m[1])); if(b.s&&b.k){ yaz('sunucu',b.s); yaz('anahtar',b.k); yaz('yeni_baglandi','1'); } }catch(e){}
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
-const SAYFA_SURUMU='2026-11-22-A';
+const SAYFA_SURUMU='2026-11-22-B';
 const UYGULAMA = /KumandaApp\//.test(navigator.userAgent) && !!window.KumandaApp;   // Kumanda uygulaması (köprü içinde, Termux yok)
 if(UYGULAMA) document.addEventListener('DOMContentLoaded',()=>{ const k=document.getElementById('kopruAciklama'); if(k) k.textContent='Uygulamanın içindeki köprü. Değiştirmen gerekmez.'; });
 const TV_TURLERI=['lg','androidtv','vidaa','smartcenter'], TOSHIBA=['androidtv','vidaa','smartcenter'];
@@ -1489,7 +1489,7 @@ async function komutCalistir(metin){
 $('#sesBtn').onclick=()=>{
   titre();
   if(dinleyen){ try{ dinleyen.stop(); }catch(e){} return; }
-  if(!Taniyici && UYGULAMA){   // uygulamada Android'in konuşma tanıması: sonuç window.sesSonucu ile gelir
+  if(UYGULAMA){   // uygulamada her zaman Android'in konuşma tanıması (WebView'in kendi tanıyıcısı mikrofon izni alamaz): sonuç window.sesSonucu ile gelir
     window.sesSonucu=async(son,hata)=>{ $('#sesBtn').classList.remove('dinliyor');
       if(!son){ if(hata) sesBalon(hata,'Tekrar dene'); else $('#sesBalon').classList.add('gizli'); return; }
       sesBalon('“'+son+'”','');
