@@ -38,7 +38,7 @@ Termux arka planda kapanmasın: Termux bildiriminde **Acquire wakelock**, Androi
   karşılaşmalar (tekrarlar hariç); *Ara* — program/takım/kanal adıyla önümüzdeki günlerde arama; *Hatırlatmalar*.
 - **🔔 Hatırlatma**: program başlamadan 5 dk önce kumanda açıksa kumandada, TV açıksa TV ekranında uyarı.
   Telefona bildirim için F-Droid'den Termux:API uygulaması + Termux'ta `pkg install termux-api`.
-- **🎤 Sesle komut**: "TRT 1'i aç", "sesi 5 aç", "kanal 7", "YouTube'u aç", "Galatasaray maçı ne zaman", "sessiz"…
+- **🎤 Sesle komut**: "TRT 1'i aç", "sesi 5 aç", "kanal 7", "YouTube'u aç", "Beşiktaş maçı ne zaman", "sessiz"…
 - **⚙ → İzleme süresi**: TV açıkken köprü her 30 sn'de hangi kanal/uygulamanın açık olduğunu kaydeder (son 7 gün).
 - **⚙ → Görünüm**: Koyu / Açık / Otomatik.
 

@@ -467,7 +467,7 @@ h1{font-size:17px;margin:0;font-weight:700;letter-spacing:.3px}
   <div class="kp-ust">
     <div class="kp-bas"><h2>Rehber<small id="rpAlt"></small></h2><button class="kp-ikon" id="rpYenile" aria-label="Yenile">↻</button><button class="kp-ikon" id="rpKapat" aria-label="Kapat">✕</button></div>
     <div class="rp-sekme" id="rpSekme"><button data-s="simdi" class="aktif">Şimdi</button><button data-s="maclar">⚽ Maçlar</button><button data-s="ara">🔍 Ara</button><button data-s="zil">🔔 Hatırlatmalar</button></div>
-    <div class="kp-ara gizli" id="rpAraKutu" style="margin:0 16px 10px"><svg class="buyutec" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="rpAra" type="search" placeholder="Program, takım ya da kanal ara… (ör. Galatasaray)" autocomplete="off" enterkeyhint="search"></div>
+    <div class="kp-ara gizli" id="rpAraKutu" style="margin:0 16px 10px"><svg class="buyutec" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="rpAra" type="search" placeholder="Program, takım ya da kanal ara… (ör. Beşiktaş)" autocomplete="off" enterkeyhint="search"></div>
     <div class="rp-filtre" id="rpFiltre"></div>
     <div class="kp-not gizli" id="rpNot"></div>
   </div>
@@ -534,7 +534,7 @@ function yaz(k,v){try{localStorage.setItem('kmd_'+k,v)}catch(e){}}
   try{ const b=JSON.parse(decodeURIComponent(m[1])); if(b.s&&b.k){ yaz('sunucu',b.s); yaz('anahtar',b.k); yaz('yeni_baglandi','1'); } }catch(e){}
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){ location.hash=''; }
 })();
-const SAYFA_SURUMU='2026-11-22-C';
+const SAYFA_SURUMU='2026-11-22-D';
 const UYGULAMA = /KumandaApp\//.test(navigator.userAgent) && !!window.KumandaApp;   // Kumanda uygulaması (köprü içinde, Termux yok)
 // Kumanda Test: kararlı Kumanda'dan ayrı uygulama. Hangisinde olduğun karışmasın diye en üstte sabit, çizgili TEST şeridi (Puan Tablosu testindeki gibi).
 const TEST_UYGULAMA = UYGULAMA && /KumandaTest\//.test(navigator.userAgent);
@@ -1505,11 +1505,11 @@ $('#sesBtn').onclick=()=>{
       sesBalon('“'+son+'”','');
       let sonuc=null; try{ sonuc=await komutCalistir(son); }catch(e){}
       sesBalon(sonuc?'✓ '+sonuc:'Anlamadım: “'+son+'”', sonuc?'':'Örnek: "TRT 1\'i aç", "sesi 5 aç", "kanal 7", "YouTube\'u aç"'); };
-    $('#sesBtn').classList.add('dinliyor'); sesBalon('Dinliyorum…','Örnek: "TRT 1\'i aç", "sesi kıs", "Galatasaray maçı ne zaman"');
+    $('#sesBtn').classList.add('dinliyor'); sesBalon('Dinliyorum…','Örnek: "TRT 1\'i aç", "sesi kıs", "Beşiktaş maçı ne zaman"');
     try{ window.KumandaApp.dinle(); }catch(e){ $('#sesBtn').classList.remove('dinliyor'); }
     return; }
   const r=new Taniyici(); r.lang='tr-TR'; r.interimResults=true; r.maxAlternatives=3; dinleyen=r;
-  $('#sesBtn').classList.add('dinliyor'); sesBalon('Dinliyorum…','Örnek: "TRT 1\'i aç", "sesi kıs", "Galatasaray maçı ne zaman"');
+  $('#sesBtn').classList.add('dinliyor'); sesBalon('Dinliyorum…','Örnek: "TRT 1\'i aç", "sesi kıs", "Beşiktaş maçı ne zaman"');
   let son='';
   r.onresult=e=>{ son=[...e.results].map(x=>x[0].transcript).join(' '); sesBalon('“'+son+'”', e.results[e.results.length-1].isFinal?'':'…'); };
   r.onerror=e=>{ sesBalon(e.error==='not-allowed'||e.error==='service-not-allowed'?'Mikrofon izni verilmedi':'Duyamadım', e.error==='not-allowed'?'Adres çubuğundaki simge → İzinler → Mikrofon → İzin ver':'Tekrar dene'); };
